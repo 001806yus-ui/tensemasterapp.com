@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" />
+      <stop offset="100%" stop-color="#F59E0B" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#brandGrad)" />
+  <!-- Book / Timeline symbol -->
+  <path d="M128 360C160 340 210 340 256 368C302 340 352 340 384 360V152C352 132 302 132 256 160C210 132 160 132 128 152V360Z" fill="white" fill-opacity="0.95" />
+  <path d="M256 160V368" stroke="#4F46E5" stroke-width="8" stroke-linecap="round" />
+  <!-- Clock / Time loop circle on top -->
+  <circle cx="256" cy="240" r="48" fill="#EEF2FF" stroke="#4F46E5" stroke-width="8" />
+  <polyline points="256,216 256,240 274,248" fill="none" stroke="#4F46E5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Mastery Star -->
+  <polygon points="256,92 266,118 294,118 272,134 280,160 256,144 232,160 240,134 218,118 246,118" fill="url(#goldGrad)" />
+</svg>
