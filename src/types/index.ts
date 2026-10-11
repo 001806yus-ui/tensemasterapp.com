@@ -291,3 +291,36 @@ export interface OwnerBusinessConfig {
   allTensesFreeMode?: boolean; // When true, all 12 tenses are 100% unlocked for everyone with no paywall
 }
 
+// AI Conversation Chatbot Types
+export type ChatTopicId =
+  | 'daily_routine'
+  | 'travel_airport'
+  | 'job_interview'
+  | 'restaurant_food'
+  | 'storytelling'
+  | 'business_meeting'
+  | 'weekend_plans'
+  | 'hobbies_passions';
+
+export type ChatDifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
+
+export interface ChatFeedbackData {
+  hasErrors: boolean;
+  feedbackSummary: string;
+  correctedSentence?: string;
+  explanation?: string;
+  detectedTenses: string[];
+  betterAlternative?: string;
+  suggestedReplies: string[];
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  timestamp: string;
+  text: string;
+  translation?: string;
+  feedback?: ChatFeedbackData;
+  isStreaming?: boolean;
+}
+

@@ -26,6 +26,7 @@ import { DiagnosticTestModal } from './components/DiagnosticTestModal';
 import { ForumView } from './components/ForumView';
 import { DuelModeView } from './components/DuelModeView';
 import { TextAnalyzerView } from './components/TextAnalyzerView';
+import { ChatbotView } from './components/ChatbotView';
 import { VerbsPatternView } from './components/VerbsPatternView';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { WelcomeTutorial, TUTORIAL_STORAGE_KEY } from './components/WelcomeTutorial';
@@ -34,7 +35,7 @@ import { useUser } from './context/UserContext';
 import { ALL_12_TENSES } from './data/tensesData';
 import { TENSE_LOCALIZED_NAMES, SUPPORTED_LANGUAGES } from './i18n/translations';
 import { TenseData, TenseGroup, TenseAspect } from './types';
-import { Sparkles, CheckCircle2, Lock, ShieldCheck, Heart, BookOpen, Trophy, Target, FileDown, Sun, Moon, Swords, Search, MessageSquare, BookMarked, HelpCircle } from 'lucide-react';
+import { Sparkles, CheckCircle2, Lock, ShieldCheck, Heart, BookOpen, Trophy, Target, FileDown, Sun, Moon, Swords, Search, MessageSquare, BookMarked, HelpCircle, Bot } from 'lucide-react';
 
 function MainApp() {
   const {
@@ -260,6 +261,15 @@ function MainApp() {
             />
           )}
 
+          {currentTab === 'chatbot' && (
+            <ChatbotView
+              onOpenTenseDetail={(id) => {
+                const t = ALL_12_TENSES.find((x) => x.id === id);
+                if (t) setActiveTenseModal(t);
+              }}
+            />
+          )}
+
           {currentTab === 'forum' && (
             <ForumView
               onOpenTenseDetail={(id) => {
@@ -342,6 +352,13 @@ function MainApp() {
               >
                 <Search className="w-3.5 h-3.5" />
                 <span>Analizador</span>
+              </button>
+              <button
+                onClick={() => setCurrentTab('chatbot')}
+                className="hover:text-purple-600 dark:hover:text-purple-400 font-semibold text-purple-600 dark:text-purple-400 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span>Chatbot Tutor</span>
               </button>
               <button
                 onClick={() => setCurrentTab('forum')}

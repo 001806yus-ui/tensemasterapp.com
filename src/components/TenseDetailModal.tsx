@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TenseData } from '../types';
 import { useUser } from '../context/UserContext';
-import { playEnglishAudio } from '../utils/speech';
+import { playEnglishAudio, stopAudio } from '../utils/speech';
 import { sounds } from '../utils/soundEffects';
 import { InteractiveExercise } from './InteractiveExercise';
 import { InteractiveSentence } from './InteractiveGlossary';
@@ -34,7 +34,9 @@ import {
   Minus,
   Plus,
   Layers,
-  Check
+  Check,
+  Play,
+  Square
 } from 'lucide-react';
 
 interface TenseDetailModalProps {
@@ -150,6 +152,9 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<'formulas' | 'examples' | 'pronunciation' | 'video' | 'practice' | 'mistakes'>(initialTab);
   const [audioSpeed, setAudioSpeed] = useState<number>(0.95);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [isPlayingAll, setIsPlayingAll] = useState<boolean>(false);
+  const [currentPlayingIndex, setCurrentPlayingIndex] = useState<number | null>(null);
+  const cancelPlayAllRef = useRef<boolean>(false);
   const [practicingExampleId, setPracticingExampleId] = useState<string | null>(null);
   const [pronunciationIndex, setPronunciationIndex] = useState<number>(0);
 
@@ -212,12 +217,25 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Cleanup ambient sound on unmount
+  // Cleanup ambient sound and speech audio on unmount
   useEffect(() => {
     return () => {
+      cancelPlayAllRef.current = true;
+      stopAudio();
       sounds.toggleFocusAmbient(false);
     };
   }, []);
+
+  // Stop playing all if user navigates to another tab or tense changes
+  useEffect(() => {
+    if (activeTab !== 'examples' && isPlayingAll) {
+      cancelPlayAllRef.current = true;
+      stopAudio();
+      setIsPlayingAll(false);
+      setCurrentPlayingIndex(null);
+      setPlayingAudioId(null);
+    }
+  }, [activeTab, isPlayingAll]);
 
   const formatTimer = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -266,9 +284,54 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
     localStorage.setItem('tensemaster_reading_theme_pref', theme);
   };
 
+  const handleStopAll = () => {
+    cancelPlayAllRef.current = true;
+    stopAudio();
+    setIsPlayingAll(false);
+    setCurrentPlayingIndex(null);
+    setPlayingAudioId(null);
+  };
+
   const handlePlayAudio = async (text: string, id: string) => {
+    if (isPlayingAll) {
+      handleStopAll();
+    }
     setPlayingAudioId(id);
     await playEnglishAudio(text, audioSpeed);
+    setPlayingAudioId(null);
+  };
+
+  const handlePlayAllExamples = async () => {
+    if (isPlayingAll) {
+      handleStopAll();
+      return;
+    }
+
+    if (!tense.examples || tense.examples.length === 0) return;
+
+    cancelPlayAllRef.current = false;
+    setIsPlayingAll(true);
+
+    for (let i = 0; i < tense.examples.length; i++) {
+      if (cancelPlayAllRef.current) break;
+      const example = tense.examples[i];
+      setCurrentPlayingIndex(i);
+      setPlayingAudioId(example.id);
+
+      const textToRead = example.audioText || example.english;
+      await playEnglishAudio(textToRead, audioSpeed);
+
+      if (cancelPlayAllRef.current) break;
+
+      // Pausa agradable de 800ms entre ejemplos sucesivos
+      if (i < tense.examples.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+      if (cancelPlayAllRef.current) break;
+    }
+
+    setIsPlayingAll(false);
+    setCurrentPlayingIndex(null);
     setPlayingAudioId(null);
   };
 
@@ -717,11 +780,43 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
 
             {/* 5. Frases Reales en Contexto con Audio (Clear reading list) */}
             <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className={`font-bold font-serif ${currentFont.subheading} ${currentTheme.headingText}`}>
-                  4. Frases Clave en Contexto ({tense.examples.length})
-                </h2>
-                <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
+                <div className="flex items-center gap-3">
+                  <h2 className={`font-bold font-serif ${currentFont.subheading} ${currentTheme.headingText}`}>
+                    4. Frases Clave en Contexto ({tense.examples.length})
+                  </h2>
+
+                  <button
+                    onClick={handlePlayAllExamples}
+                    className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all flex items-center gap-1.5 text-xs shadow-xs ${
+                      isPlayingAll
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-2 ring-rose-400'
+                        : 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
+                    }`}
+                    title={isPlayingAll ? 'Detener lectura continua' : 'Escuchar todos los ejemplos en voz alta consecutivamente'}
+                  >
+                    {isPlayingAll ? (
+                      <>
+                        <Square className="w-3.5 h-3.5 fill-current" />
+                        <span>Detener ({currentPlayingIndex !== null ? `${currentPlayingIndex + 1}/${tense.examples.length}` : ''})</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Escuchar todo</span>
+                      </>
+                    )}
+                  </button>
+
+                  {isPlayingAll && (
+                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 animate-pulse">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Leyendo frase {currentPlayingIndex !== null ? currentPlayingIndex + 1 : 1}...</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs ml-auto">
                   <span className={currentTheme.mutedText}>Velocidad:</span>
                   <button
                     onClick={() => setAudioSpeed(0.8)}
@@ -748,7 +843,11 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
                   return (
                     <div
                       key={example.id}
-                      className={`p-5 rounded-2xl border transition-all ${currentTheme.cardBg} ${currentTheme.cardBorder}`}
+                      className={`p-5 rounded-2xl border transition-all ${
+                        isPlayingAll && currentPlayingIndex === idx
+                          ? 'border-indigo-500 ring-2 ring-indigo-400 bg-indigo-500/15 shadow-sm scale-[1.01]'
+                          : `${currentTheme.cardBg} ${currentTheme.cardBorder}`
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1.5 flex-1">
@@ -1166,25 +1265,65 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
               {/* 2. Examples with Audio Tab */}
               {activeTab === 'examples' && (
                 <div className="space-y-4">
-                  {/* Audio playback speed toolbar */}
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <span>Haz clic en el altavoz o toca las palabras subrayadas para traducir.</span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
+                  {/* Audio playback speed toolbar & Escuchar todo */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handlePlayAllExamples}
+                        className={`px-3.5 py-2 rounded-xl font-bold cursor-pointer transition-all flex items-center gap-2 shadow-xs ${
+                          isPlayingAll
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white ring-2 ring-rose-400 animate-pulse'
+                            : 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
+                        }`}
+                        title={isPlayingAll ? 'Detener lectura continua' : 'Escuchar todos los ejemplos de este tiempo verbal en voz alta'}
+                      >
+                        {isPlayingAll ? (
+                          <>
+                            <Square className="w-3.5 h-3.5 fill-current" />
+                            <span>
+                              Detener ({currentPlayingIndex !== null ? `${currentPlayingIndex + 1}/${tense.examples.length}` : ''})
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Escuchar todo ({tense.examples.length})</span>
+                          </>
+                        )}
+                      </button>
+
+                      {isPlayingAll && (
+                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 animate-pulse">
+                          <Volume2 className="w-4 h-4" />
+                          <span>Leyendo frase {currentPlayingIndex !== null ? currentPlayingIndex + 1 : 1}...</span>
+                        </span>
+                      )}
+
+                      {!isPlayingAll && (
+                        <span className="hidden sm:inline text-slate-500 dark:text-slate-400 text-[11px]">
+                          Lee en voz alta todas las frases consecutivamente.
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 ml-auto">
                       <span>Velocidad:</span>
                       <button
                         onClick={() => setAudioSpeed(0.8)}
-                        className={`px-2 py-0.5 rounded text-xs font-medium cursor-pointer ${
-                          audioSpeed === 0.8 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                          audioSpeed === 0.8
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                         }`}
                       >
                         0.8x Lento
                       </button>
                       <button
                         onClick={() => setAudioSpeed(0.95)}
-                        className={`px-2 py-0.5 rounded text-xs font-medium cursor-pointer ${
-                          audioSpeed === 0.95 ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                          audioSpeed === 0.95
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                         }`}
                       >
                         1.0x Normal
@@ -1196,11 +1335,14 @@ export const TenseDetailModal: React.FC<TenseDetailModalProps> = ({
                     {tense.examples.map((example, idx) => {
                       const isPlaying = playingAudioId === example.id;
                       const isPracticing = practicingExampleId === example.id;
+                      const isBeingReadInSequence = isPlayingAll && currentPlayingIndex === idx;
                       return (
                         <div
                           key={example.id}
                           className={`p-4 rounded-xl border transition-all shadow-2xs space-y-3 ${
-                            isPracticing
+                            isBeingReadInSequence
+                              ? 'border-indigo-500 ring-2 ring-indigo-400 bg-indigo-50/60 dark:bg-indigo-950/40 scale-[1.01]'
+                              : isPracticing
                               ? 'border-rose-300 bg-rose-50/20 dark:bg-rose-950/20 ring-1 ring-rose-200 dark:ring-rose-800'
                               : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300'
                           }`}

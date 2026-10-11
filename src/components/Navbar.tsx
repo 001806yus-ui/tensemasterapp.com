@@ -22,7 +22,8 @@ import {
   ChevronDown,
   MoreHorizontal,
   Check,
-  HelpCircle
+  HelpCircle,
+  Bot
 } from 'lucide-react';
 import { SUPPORTED_LANGUAGES } from '../i18n/translations';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -36,6 +37,7 @@ export type NavigationTab =
   | 'verbs'
   | 'duel'
   | 'analyzer'
+  | 'chatbot'
   | 'forum'
   | 'rankings'
   | 'progress';
@@ -90,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const settingsRef = useRef<HTMLDivElement>(null);
   const langMenuRef = useRef<HTMLDivElement>(null);
 
-  const isMoreToolsActive = ['comparator', 'verbs', 'duel', 'analyzer', 'forum', 'rankings'].includes(currentTab);
+  const isMoreToolsActive = ['comparator', 'verbs', 'duel', 'analyzer', 'chatbot', 'forum', 'rankings'].includes(currentTab);
 
   // Close popovers on click outside
   useEffect(() => {
@@ -141,6 +143,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       desc: 'Detecta tiempos en cualquier texto',
       icon: Search,
       color: 'text-teal-500'
+    },
+    {
+      id: 'chatbot' as NavigationTab,
+      label: t.navChatbot || 'Chatbot Tutor IA',
+      desc: 'Conversación en inglés con corrección en vivo',
+      icon: Bot,
+      color: 'text-purple-500'
     },
     {
       id: 'forum' as NavigationTab,

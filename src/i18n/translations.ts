@@ -47,6 +47,7 @@ export interface LocaleTranslations {
   navVerbs: string;
   navDuel: string;
   navAnalyzer: string;
+  navChatbot?: string;
   navForum: string;
   navRankings: string;
   navProgress: string;
@@ -131,6 +132,7 @@ export const TRANSLATIONS: Record<SupportedLanguage, LocaleTranslations> = {
     navVerbs: '📖 Verbos 3 Tiempos',
     navDuel: '⚔️ Duelo 1v1',
     navAnalyzer: '🔍 Analizador',
+    navChatbot: '🤖 Chatbot Tutor',
     navForum: '💬 Foro',
     navRankings: '🏆 Rankings',
     navProgress: 'Mi Progreso',
