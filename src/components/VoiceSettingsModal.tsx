@@ -1,169 +1,75 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useSyncExternalStore } from 'react';
+import { X, Volume2, Check } from 'lucide-react';
+import { useLocalization } from '../i18n/LocalizationContext';
 import {
-  X,
-  Volume2,
-  Check,
-  Play,
-  Sparkles,
-  Radio,
-  Sliders,
-  RotateCcw
-} from 'lucide-react';
-import {
-  VOICE_PROFILES,
-  VoicePersona,
-  getPreferredVoicePersona,
-  setPreferredVoicePersona,
-  testPlayVoice,
-  stopAudio
+  VOICE_PROFILES, VoicePersona, getPreferredVoicePersona, setPreferredVoicePersona,
+  testPlayVoice, stopAudio, getAvailableEnglishVoices, getPreferredDeviceVoice,
+  setPreferredDeviceVoice, getVoicePlaybackState, subscribeVoicePlayback,
+  checkNaturalAudio, selectDeviceVoice, playEnglishAudio,
 } from '../utils/speech';
 
-interface VoiceSettingsModalProps {
-  onClose: () => void;
-}
-
-export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({ onClose }) => {
-  const [selectedPersona, setSelectedPersona] = useState<VoicePersona>(() => getPreferredVoicePersona());
-  const [isPlayingPersona, setIsPlayingPersona] = useState<VoicePersona | null>(null);
-
-  const handleSelect = (persona: VoicePersona) => {
-    setSelectedPersona(persona);
-    setPreferredVoicePersona(persona);
+export const VoiceSettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { l } = useLocalization();
+  const [persona, setPersona] = useState<VoicePersona>(getPreferredVoicePersona);
+  const [voices, setVoices] = useState(getAvailableEnglishVoices);
+  const [deviceURI, setDeviceURI] = useState(getPreferredDeviceVoice);
+  const [playing, setPlaying] = useState<string | null>(null);
+  const status = useSyncExternalStore(subscribeVoicePlayback, getVoicePlaybackState, getVoicePlaybackState);
+  useEffect(() => {
+    const refresh = () => setVoices(getAvailableEnglishVoices());
+    window.speechSynthesis?.addEventListener('voiceschanged', refresh);
+    void checkNaturalAudio();
+    return () => { window.speechSynthesis?.removeEventListener('voiceschanged', refresh); stopAudio(); };
+  }, []);
+  const choose = (value: VoicePersona) => {
+    stopAudio(); setPlaying(null); setPersona(value); setPreferredVoicePersona(value); setDeviceURI('');
   };
-
-  const handleTestAudio = async (persona: VoicePersona, e: React.MouseEvent) => {
-    e.stopPropagation();
-    stopAudio();
-    setIsPlayingPersona(persona);
-    await testPlayVoice(persona);
-    setIsPlayingPersona(null);
+  const test = async (value: VoicePersona, device = false) => {
+    const key = device ? 'device' : value;
+    setPlaying(key);
+    if (device) await playEnglishAudio(VOICE_PROFILES.find(v => v.id === persona)!.sampleSentence, 1, undefined, true);
+    else await testPlayVoice(value);
+    setPlaying(current => current === key ? null : current);
   };
-
+  const selectedVoice = selectDeviceVoice(voices, persona, deviceURI);
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full my-auto shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        
-        {/* Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-teal-900 via-indigo-950 to-slate-900 text-white relative">
-          <button
-            onClick={() => {
-              stopAudio();
-              onClose();
-            }}
-            className="absolute right-4 top-4 p-1.5 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-teal-200 mb-2.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Motor de Voz Humana HD (Sin Sonido Robótico)</span>
-          </div>
-
-          <h2 className="text-xl sm:text-2xl font-bold font-serif">
-            Personalizar Voz de los Audios
-          </h2>
-          <p className="text-xs sm:text-sm text-teal-100/90 mt-1 max-w-md">
-            Elige la voz nativa que prefieras para todas las lecciones, oraciones y ejercicios de la aplicación.
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3">
+      <section role="dialog" aria-modal="true" aria-labelledby="voice-settings-title" className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full max-h-[90dvh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-800">
+        <header className="p-5 bg-gradient-to-r from-teal-900 to-indigo-950 text-white relative">
+          <button type="button" aria-label={l('Close')} onClick={onClose} className="absolute right-3 top-3 p-2 rounded-lg hover:bg-white/10"><X className="w-5 h-5" /></button>
+          <h2 id="voice-settings-title" className="text-xl font-bold pr-8">{l('Choose your audio voice')}</h2>
+          <p className="text-sm text-teal-100 mt-2">{l('Listen to a sample and choose the voice you prefer.')}</p>
+        </header>
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-300" role="status">
+            {l(status.cloudEnabled && !deviceURI ? 'Natural lesson audio is available. Other text uses your device voice.' : 'Audio currently uses the English voices installed on your device.')}
           </p>
+          <div className="space-y-2" role="group" aria-label={l('Voice preference')}>
+            {VOICE_PROFILES.map(profile => (
+              <div key={profile.id} className={`flex gap-2 items-center rounded-xl border p-3 ${persona === profile.id ? 'border-teal-600 bg-teal-50 dark:bg-teal-950/40' : 'border-slate-200 dark:border-slate-700'}`}>
+                <button type="button" onClick={() => choose(profile.id)} aria-pressed={persona === profile.id} className="flex-1 flex items-center gap-2 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                  <span className="w-5 shrink-0">{persona === profile.id && <Check className="w-5 h-5 text-teal-600" />}</span>{l(profile.label)}
+                </button>
+                <button type="button" onClick={() => void test(profile.id)} disabled={playing === profile.id} aria-label={l('Listen to a voice sample') + ': ' + l(profile.label)} className="flex items-center gap-1 p-2 rounded-lg text-xs font-bold text-teal-800 dark:text-teal-200 bg-white dark:bg-slate-800 border border-teal-200 dark:border-teal-800">
+                  <Volume2 className="w-4 h-4" />{l(playing === profile.id ? 'Speaking…' : 'Listen')}
+                </button>
+              </div>
+            ))}
+          </div>
+          <label className="block text-sm font-semibold text-slate-900 dark:text-white" htmlFor="device-voice">{l('Device voice')}</label>
+          <select id="device-voice" value={deviceURI} onChange={e => { stopAudio(); setPlaying(null); setDeviceURI(e.target.value); setPreferredDeviceVoice(e.target.value); }} className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white">
+            <option value="">{l('Automatic selection')}</option>
+            {voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} ({v.lang})</option>)}
+          </select>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400">{l('Selected device voice')}: {selectedVoice?.name || l('Browser default')}. {l('Voice availability varies by device. Accent and gender are preferences.')}</p>
+            <button type="button" onClick={() => void test(persona, true)} disabled={playing === 'device'} className="shrink-0 p-2 text-xs font-bold text-teal-700 dark:text-teal-300">{l(playing === 'device' ? 'Speaking…' : 'Listen')}</button>
+          </div>
+          {status.engine === 'unavailable' && <p role="alert" className="text-sm text-amber-800 dark:text-amber-200">{l('Audio could not play. Try another voice or check your browser audio settings.')} {status.lastError && <code>{status.lastError}</code>}</p>}
+          {status.fallback && <p role="status" className="text-xs text-amber-800 dark:text-amber-200">{l('Natural audio was unavailable for this text. Your device voice is playing.')}</p>}
+          <button type="button" onClick={onClose} className="w-full p-3 rounded-xl font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">{l('Save and continue')}</button>
         </div>
-
-        {/* Content */}
-        <div className="p-5 sm:p-6 space-y-4">
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span className="font-semibold uppercase tracking-wider">Voces Nativa de Estudio Disponibles:</span>
-            <span>Haz clic para probar</span>
-          </div>
-
-          <div className="space-y-2.5">
-            {VOICE_PROFILES.map((profile) => {
-              const isSelected = selectedPersona === profile.id;
-              const isPlaying = isPlayingPersona === profile.id;
-
-              return (
-                <div
-                  key={profile.id}
-                  onClick={() => handleSelect(profile.id)}
-                  className={`p-3.5 sm:p-4 rounded-xl border transition-all cursor-pointer flex items-start sm:items-center justify-between gap-3 ${
-                    isSelected
-                      ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-500 shadow-xs'
-                      : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="pt-0.5">
-                      <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${
-                          isSelected
-                            ? 'bg-teal-600 border-teal-600 text-white'
-                            : 'border-slate-300 dark:border-slate-600'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                      </div>
-                    </div>
-
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">
-                          {profile.label}
-                        </span>
-                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                          {profile.accent}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">
-                        {profile.tagline}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => handleTestAudio(profile.id, e)}
-                    disabled={isPlaying}
-                    title="Escuchar muestra de esta voz"
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                      isPlaying
-                        ? 'bg-teal-600 text-white animate-pulse'
-                        : 'bg-white dark:bg-slate-800 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-700 shadow-2xs'
-                    }`}
-                  >
-                    <Volume2 className="w-3.5 h-3.5" />
-                    <span>{isPlaying ? 'Hablando...' : 'Probar'}</span>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs space-y-1 text-amber-900 dark:text-amber-200">
-            <div className="flex items-center gap-1.5 font-bold">
-              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span>¿Por qué suena ahora mucho más natural?</span>
-            </div>
-            <p className="leading-relaxed">
-              Hemos conectado los motores neuronales de alta definición (Google Neural, Apple Enhanced y Microsoft Natural) con entonación cálida y micro-pausas gramaticales, eliminando la voz robótica plana de antes.
-            </p>
-          </div>
-
-          {/* Action button */}
-          <div className="pt-2 flex justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                stopAudio();
-                onClose();
-              }}
-              className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-bold rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
-            >
-              Guardar y Continuar
-            </button>
-          </div>
-
-        </div>
-
-      </div>
+      </section>
     </div>
   );
 };

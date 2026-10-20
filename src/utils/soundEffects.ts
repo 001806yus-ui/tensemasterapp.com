@@ -45,6 +45,35 @@ class SoundFX {
     }
   }
 
+  // Clear, loud speaker test chime that verifies hardware speakers are unmuted
+  playSpeakerTestChime() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const notes = [
+        { f: 523.25, start: 0, dur: 0.18 }, // C5
+        { f: 659.25, start: 0.14, dur: 0.18 }, // E5
+        { f: 783.99, start: 0.28, dur: 0.22 }, // G5
+        { f: 1046.50, start: 0.42, dur: 0.55 }, // C6
+      ];
+      notes.forEach((n) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(n.f, now + n.start);
+        gain.gain.setValueAtTime(0.3, now + n.start);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + n.start);
+        osc.stop(now + n.start + n.dur);
+      });
+    } catch {
+      // ignore
+    }
+  }
+
   // Ding for correct answers
   playCorrect() {
     const ctx = this.getContext();

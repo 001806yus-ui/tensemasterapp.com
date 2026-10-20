@@ -1,11 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/:path*",
-      "destination": "https://tensemaster1-369588566740.us-west1.run.app/:path*",
-      "permanent": false
-    }
-  ],
   "rewrites": [
     {
       "source": "/((?!api/).*)",

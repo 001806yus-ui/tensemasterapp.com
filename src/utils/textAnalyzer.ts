@@ -318,7 +318,7 @@ export function analyzeEnglishText(rawText: string): TextAnalysisResult {
   }
 
   if (passiveVoiceCount > 0) {
-    feedbackTips.push(`📌 Voz Pasiva detectada (${passiveVoiceCount} casos): Aporta formalidad y estilo periodístico/académico al texto.`);
+    feedbackTips.push('📌 Passive voice was detected. Review whether the passive form suits the focus of your sentence.');
   }
 
   if (feedbackTips.length === 0) {

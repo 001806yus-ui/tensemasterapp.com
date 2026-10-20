@@ -1,19 +1,6 @@
-/**
- * Speech synthesis & Speech recognition utilities
- * High-Fidelity Natural Voice Engine (No-Robot Voice Synthesis)
- */
+import { VOICE_SAMPLES, normalizeSpeechText } from '../config/voices';
 
-let synth: SpeechSynthesis | null = null;
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  synth = window.speechSynthesis;
-}
-
-export type VoicePersona =
-  | 'natural-us-female'
-  | 'natural-us-male'
-  | 'natural-uk-female'
-  | 'natural-uk-male';
-
+export type VoicePersona = keyof typeof VOICE_SAMPLES;
 export interface VoiceOption {
   id: VoicePersona;
   label: string;
@@ -22,229 +9,366 @@ export interface VoiceOption {
   tagline: string;
   sampleSentence: string;
 }
-
 export const VOICE_PROFILES: VoiceOption[] = [
-  {
-    id: 'natural-us-female',
-    label: 'Jenny / Samantha (Voz Femenina Natural - US)',
-    accent: 'US',
-    gender: 'female',
-    tagline: 'Cálida, clara y perfecta para aprender entonación americana moderna.',
-    sampleSentence: "Hello! Welcome to your English lesson. Notice how natural and clear this sounds."
-  },
-  {
-    id: 'natural-us-male',
-    label: 'Guy / Alex (Voz Masculina Natural - US)',
-    accent: 'US',
-    gender: 'male',
-    tagline: 'Voz profunda, segura y con pronunciación nativa conversacional.',
-    sampleSentence: "Hey there! Practicing every day is the fastest way to master English tenses."
-  },
-  {
-    id: 'natural-uk-female',
-    label: 'Aria / Serena (Voz Británica Natural - UK)',
-    accent: 'UK',
-    gender: 'female',
-    tagline: 'Elegante dicción británica RP con articulación suave y refinada.',
-    sampleSentence: "Good morning! English grammar becomes simple once you hear the natural flow."
-  },
-  {
-    id: 'natural-uk-male',
-    label: 'Daniel / Oliver (Voz Británica Masculina - UK)',
-    accent: 'UK',
-    gender: 'male',
-    tagline: 'Acento clásico de la BBC británica, impecable y académico.',
-    sampleSentence: "Brilliant work! With this pronunciation, you'll sound completely fluent."
-  }
+  { id: 'natural-us-female', label: 'American English · female preference', accent: 'US', gender: 'female', tagline: 'Warm and conversational.', sampleSentence: VOICE_SAMPLES['natural-us-female'] },
+  { id: 'natural-us-male', label: 'American English · male preference', accent: 'US', gender: 'male', tagline: 'Warm and conversational.', sampleSentence: VOICE_SAMPLES['natural-us-male'] },
+  { id: 'natural-uk-female', label: 'British English · female preference', accent: 'UK', gender: 'female', tagline: 'Clear and relaxed.', sampleSentence: VOICE_SAMPLES['natural-uk-female'] },
+  { id: 'natural-uk-male', label: 'British English · male preference', accent: 'UK', gender: 'male', tagline: 'Clear and relaxed.', sampleSentence: VOICE_SAMPLES['natural-uk-male'] },
 ];
-
-const VOICE_PREF_KEY = 'tensemaster_preferred_voice_persona';
-
+const PERSONA_KEY = 'tensemaster_preferred_voice_persona';
+const DEVICE_KEY = 'tensemaster_device_voice_uri';
+const read = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
+const write = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch {} };
 export const getPreferredVoicePersona = (): VoicePersona => {
-  if (typeof window === 'undefined') return 'natural-us-female';
-  try {
-    const saved = localStorage.getItem(VOICE_PREF_KEY);
-    if (saved && (saved === 'natural-us-female' || saved === 'natural-us-male' || saved === 'natural-uk-female' || saved === 'natural-uk-male')) {
-      return saved as VoicePersona;
-    }
-  } catch (e) {
-    // ignore
-  }
-  return 'natural-us-female';
+  const value = read(PERSONA_KEY);
+  return value && Object.hasOwn(VOICE_SAMPLES, value) ? value as VoicePersona : 'natural-us-female';
+};
+export const setPreferredVoicePersona = (persona: VoicePersona) => { write(PERSONA_KEY, persona); write(DEVICE_KEY, ''); };
+export const getPreferredDeviceVoice = () => read(DEVICE_KEY) || '';
+export const setPreferredDeviceVoice = (uri: string) => write(DEVICE_KEY, uri);
+const synth = () => typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+export const getAvailableEnglishVoices = () => (synth()?.getVoices() || []).filter(v => /^en(?:[-_]|$)/i.test(v.lang));
+
+export const selectDeviceVoice = (voices: SpeechSynthesisVoice[], persona: VoicePersona, preferredURI = ''): SpeechSynthesisVoice | null => {
+  const english = voices.filter(v => /^en(?:[-_]|$)/i.test(v.lang));
+  const preferred = english.find(v => v.voiceURI === preferredURI);
+  if (preferred) return preferred;
+  const uk = persona.includes('-uk-');
+  const female = persona.endsWith('-female');
+  const score = (v: SpeechSynthesisVoice) => {
+    const name = v.name.toLowerCase();
+    let n = (uk ? /en[-_](gb|uk)/i : /en[-_]us/i).test(v.lang) ? 35 : 0;
+    if (/natural|neural/.test(name)) n += 100;
+    if (/enhanced|premium/.test(name)) n += 80;
+    if (/google/.test(name)) n += 45;
+    // Web Speech exposes no gender or quality metadata. These are preferences,
+    // not a promise that a named voice is installed or that it is neural.
+    const isFemale = /jenny|samantha|ava|aria|victoria|serena|zira|\bfemale\b/.test(name);
+    const isMale = /\bguy\b|\balex\b|daniel|oliver|david|ryan|george|\bmale\b/.test(name);
+    if (female ? isFemale : isMale) n += 25;
+    if (female ? isMale : isFemale) n -= 25;
+    if (/espeak|compact|sinclair|robot/.test(name)) n -= 200;
+    return n;
+  };
+  return [...english].sort((a, b) => score(b) - score(a))[0] || null;
 };
 
-export const setPreferredVoicePersona = (persona: VoicePersona) => {
-  if (typeof window !== 'undefined') {
+export type VoicePlaybackState = { engine: 'idle' | 'loading' | 'cloud' | 'device' | 'unavailable'; cloudEnabled: boolean; fallback: boolean; lastError?: string };
+let playbackState: VoicePlaybackState = { engine: 'idle', cloudEnabled: false, fallback: false };
+const listeners = new Set<() => void>();
+export const getVoicePlaybackState = () => playbackState;
+export const subscribeVoicePlayback = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
+const report = (update: Partial<VoicePlaybackState>) => { playbackState = { ...playbackState, ...update }; listeners.forEach(fn => fn()); };
+let cloudStatus: { enabled: boolean; checked: number } | null = null;
+let statusRequest: Promise<boolean> | null = null;
+export const checkNaturalAudio = async (): Promise<boolean> => {
+  if (cloudStatus && Date.now() - cloudStatus.checked < 60000) return cloudStatus.enabled;
+  if (statusRequest) return statusRequest;
+  statusRequest = (async () => {
+    let enabled = false;
     try {
-      localStorage.setItem(VOICE_PREF_KEY, persona);
-    } catch (e) {
-      // ignore
+      const res = await fetch('/api/speech', { signal: AbortSignal.timeout(2500) });
+      if (res.ok) enabled = (await res.json()).enabled === true;
+    } catch {}
+    cloudStatus = { enabled, checked: Date.now() };
+    report({ cloudEnabled: enabled });
+    return enabled;
+  })();
+  try { return await statusRequest; } finally { statusRequest = null; }
+};
+
+let audioContext: AudioContext | null = null;
+export const getSharedAudioContext = (): AudioContext | null => {
+  if (typeof window === 'undefined') return null;
+  const Context = window.AudioContext || (window as any).webkitAudioContext;
+  if (!Context) return null;
+  if (!audioContext || audioContext.state === 'closed') {
+    audioContext = new Context();
+  }
+  return audioContext;
+};
+
+export const unlockAudio = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = getSharedAudioContext();
+    if (ctx) {
+      if (ctx.state === 'suspended') {
+        void ctx.resume().catch(() => {});
+      }
+      try {
+        const silent = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = silent;
+        src.connect(ctx.destination);
+        src.start(0);
+      } catch {}
     }
-  }
+    const engine = synth();
+    if (engine) {
+      if (engine.paused) {
+        try { engine.resume(); } catch {}
+      }
+    }
+  } catch {}
 };
 
-// Cached voices list
-let cachedVoices: SpeechSynthesisVoice[] = [];
-
-const refreshVoices = (): SpeechSynthesisVoice[] => {
-  if (!synth) return [];
-  const list = synth.getVoices();
-  if (list && list.length > 0) {
-    cachedVoices = list;
-  }
-  return cachedVoices;
-};
-
-// Initialize voice listener
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  refreshVoices();
-  if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      refreshVoices();
-    };
-  }
+if (typeof window !== 'undefined') {
+  const prime = () => {
+    unlockAudio();
+  };
+  ['pointerdown', 'touchstart', 'mousedown', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, prime, { capture: true, passive: true });
+  });
+  void checkNaturalAudio();
 }
 
-/**
- * Intelligent voice selector that picks high-definition neural voices over mechanical robot voices
- */
-const pickBestNaturalVoice = (persona: VoicePersona): { voice: SpeechSynthesisVoice | null; pitch: number; rateMultiplier: number } => {
-  const voices = refreshVoices();
-  if (!voices || voices.length === 0) {
-    return { voice: null, pitch: 1.02, rateMultiplier: 1.0 };
-  }
-
-  // Filter strictly to English voices
-  const englishVoices = voices.filter(
-    (v) => v.lang && (v.lang.toLowerCase().startsWith('en-') || v.lang.toLowerCase() === 'en')
-  );
-
-  const pool = englishVoices.length > 0 ? englishVoices : voices;
-
-  const isUK = persona.includes('-uk-');
-  const isFemale = persona.includes('-female');
-
-  // Score candidate voices
-  const scored = pool.map((v) => {
-    let score = 0;
-    const name = v.name.toLowerCase();
-    const lang = v.lang.toLowerCase();
-
-    // Accent match
-    if (isUK && (lang.includes('gb') || lang.includes('uk'))) score += 30;
-    if (!isUK && (lang.includes('us') || lang.includes('en-us'))) score += 30;
-
-    // Neural / Natural Quality Signals (Microsoft Online Natural, Google Neural, Apple Enhanced)
-    if (name.includes('natural') || name.includes('online (natural)')) score += 60;
-    if (name.includes('neural')) score += 55;
-    if (name.includes('enhanced') || name.includes('premium')) score += 50;
-    if (name.includes('google')) score += 40; // Google's US/UK Web voices are highly natural
-    if (v.localService === false) score += 20; // Network-streamed neural voices
-
-    // Gender preferences
-    if (isFemale) {
-      if (name.includes('jenny') || name.includes('samantha') || name.includes('ava') || name.includes('aria') || name.includes('victoria') || name.includes('serena') || name.includes('zira') || name.includes('female')) {
-        score += 35;
-      }
-      if (name.includes('guy') || name.includes('david') || name.includes('alex') || name.includes('male') || name.includes('daniel')) {
-        score -= 20;
-      }
-    } else {
-      if (name.includes('guy') || name.includes('alex') || name.includes('daniel') || name.includes('oliver') || name.includes('david') || name.includes('ryan') || name.includes('male') || name.includes('george')) {
-        score += 35;
-      }
-      if (name.includes('jenny') || name.includes('samantha') || name.includes('aria') || name.includes('female') || name.includes('zira')) {
-        score -= 20;
-      }
-    }
-
-    // Heavy penalty for old robotic fallbacks
-    if (name.includes('espeak') || name.includes('compact') || name.includes('sinclair') || name.includes('bad') || name.includes('robot')) {
-      score -= 100;
-    }
-
-    return { voice: v, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  const best = scored[0]?.voice || null;
-
-  // Human warmth pitch modulation:
-  // Flat 1.0 sounds mechanical. 1.04 gives warm natural brightness for female, 0.97 gives resonant natural tone for male.
-  const pitch = isFemale ? 1.05 : 0.97;
-  const rateMultiplier = isFemale ? 0.96 : 0.94;
-
-  return { voice: best, pitch, rateMultiplier };
-};
-
-export const playEnglishAudio = (
-  text: string,
-  rate: number = 0.94,
-  overridePersona?: VoicePersona
-): Promise<boolean> => {
-  return new Promise((resolve) => {
-    if (!synth) {
-      console.warn('Speech synthesis not supported in this browser.');
-      resolve(false);
-      return;
-    }
-
+const decodeAudioDataSafe = (ctx: AudioContext, arrayBuffer: ArrayBuffer): Promise<AudioBuffer> => {
+  return new Promise((resolve, reject) => {
     try {
-      synth.cancel(); // Stop any pending speech cleanly
-
-      // Slightly smooth pauses by inserting subtle punctuation spacing
-      const smoothedText = text
-        .trim()
-        .replace(/\s+/g, ' ')
-        .replace(/([,;])\s*/g, '$1 ')
-        .replace(/([.!?])\s*/g, '$1 ');
-
-      const utterance = new SpeechSynthesisUtterance(smoothedText);
-      const persona = overridePersona || getPreferredVoicePersona();
-      const { voice, pitch, rateMultiplier } = pickBestNaturalVoice(persona);
-
-      utterance.lang = persona.includes('-uk-') ? 'en-GB' : 'en-US';
-      utterance.rate = Math.max(0.7, Math.min(1.2, rate * rateMultiplier));
-      utterance.pitch = pitch;
-      utterance.volume = 1.0;
-
-      if (voice) {
-        utterance.voice = voice;
+      const res = ctx.decodeAudioData(
+        arrayBuffer,
+        buf => resolve(buf),
+        err => reject(err)
+      );
+      if (res && typeof (res as any).then === 'function') {
+        (res as any).then(resolve, reject);
       }
-
-      utterance.onend = () => resolve(true);
-      utterance.onerror = (e) => {
-        // If canceled explicitly, don't throw error
-        if (e.error === 'canceled' || e.error === 'interrupted') {
-          resolve(true);
-        } else {
-          console.warn('Audio synthesis warning:', e);
-          resolve(false);
-        }
-      };
-
-      synth.speak(utterance);
-    } catch (err) {
-      console.error('Error speaking text:', err);
-      resolve(false);
-    }
-  });
-};
-
-export const testPlayVoice = (persona: VoicePersona): Promise<boolean> => {
-  const profile = VOICE_PROFILES.find((p) => p.id === persona) || VOICE_PROFILES[0];
-  return playEnglishAudio(profile.sampleSentence, 0.94, persona);
-};
-
-export const stopAudio = () => {
-  if (synth) {
-    try {
-      synth.cancel();
     } catch (e) {
-      // ignore
+      reject(e);
     }
-  }
+  });
 };
+
+type Job = { canceled: boolean; abort: AbortController; cleanup: Set<() => void>; finish: (ok: boolean) => void; utterance?: SpeechSynthesisUtterance };
+let active: Job | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+const audioCache = new Map<string, Blob>();
+let audioCacheBytes = 0;
+export const stopAudio = () => {
+  const previous = active;
+  active = null;
+  activeUtterance = null;
+  if (previous) { previous.canceled = true; previous.abort.abort(); previous.finish(false); }
+  try { const engine = synth(); if (previous || engine?.speaking || engine?.pending) engine?.cancel(); } catch {}
+};
+
+const waitForVoices = (job: Job): Promise<void> => {
+  const engine = synth();
+  if (!engine || engine.getVoices().length) return Promise.resolve();
+  return new Promise(resolve => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      clearInterval(interval);
+      engine.removeEventListener?.('voiceschanged', finish);
+      job.cleanup.delete(finish);
+      resolve();
+    };
+    const timer = setTimeout(finish, 400);
+    const interval = setInterval(() => {
+      if (engine.getVoices().length) finish();
+    }, 40);
+    engine.addEventListener?.('voiceschanged', finish);
+    job.cleanup.add(finish);
+  });
+};
+
+const playCloudAudio = async (text: string, persona: VoicePersona, rate: number, job: Job): Promise<boolean> => {
+  const key = persona + ':' + text;
+  let blob = audioCache.get(key);
+  if (!blob) {
+    const timer = setTimeout(() => job.abort.abort(), 12000);
+    job.cleanup.add(() => clearTimeout(timer));
+    try {
+      const response = await fetch('/api/speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, persona }), signal: job.abort.signal });
+      if (!response.ok || !response.headers.get('Content-Type')?.includes('audio/wav')) {
+        if (response.status === 429) {
+          cloudStatus = { enabled: false, checked: Date.now() + 240000 };
+          report({ cloudEnabled: false });
+        }
+        return false;
+      }
+      blob = await response.blob();
+      if (!blob.size || blob.size > 6 * 1024 * 1024 || job.canceled) return false;
+      while (audioCache.size && audioCacheBytes + blob.size > 12 * 1024 * 1024) {
+        const oldest = audioCache.keys().next().value!;
+        audioCacheBytes -= audioCache.get(oldest)!.size; audioCache.delete(oldest);
+      }
+      audioCache.set(key, blob); audioCacheBytes += blob.size;
+    } finally { clearTimeout(timer); }
+  }
+  if (job.canceled) return false;
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(blob!);
+    const audio = new Audio(url);
+    audio.playbackRate = rate;
+    audio.preservesPitch = true;
+    let finished = false;
+    let sourceNode: AudioBufferSourceNode | null = null;
+    const done = (ok: boolean) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      audio.onended = null;
+      audio.onerror = null;
+      try { audio.pause(); } catch {}
+      if (sourceNode) {
+        try { sourceNode.stop(); } catch {}
+        sourceNode = null;
+      }
+      URL.revokeObjectURL(url);
+      job.cleanup.delete(cancel);
+      resolve(ok);
+    };
+    const cancel = () => done(false);
+    const timer = setTimeout(cancel, Math.max(12000, (text.length * 200) / rate));
+    job.cleanup.add(cancel);
+    audio.onended = () => done(true);
+
+    const tryWebAudioFallback = async () => {
+      try {
+        const ctx = getSharedAudioContext();
+        if (ctx && blob) {
+          if (ctx.state === 'suspended') {
+            await ctx.resume().catch(() => {});
+          }
+          if (ctx.state === 'suspended') {
+            cancel();
+            return;
+          }
+          const arrayBuffer = await blob.arrayBuffer();
+          if (finished || job.canceled) return;
+          const buffer = await decodeAudioDataSafe(ctx, arrayBuffer);
+          if (finished || job.canceled) return;
+          const source = ctx.createBufferSource();
+          sourceNode = source;
+          source.buffer = buffer;
+          source.playbackRate.value = rate;
+          source.connect(ctx.destination);
+          source.onended = () => done(true);
+          job.cleanup.add(() => { try { source.stop(); } catch {} });
+          source.start(0);
+          if (!job.canceled) report({ engine: 'cloud', fallback: false });
+          return;
+        }
+      } catch {}
+      cancel();
+    };
+
+    audio.onerror = () => {
+      void tryWebAudioFallback();
+    };
+
+    audio.play()
+      .then(() => { if (!job.canceled) report({ engine: 'cloud', fallback: false }); })
+      .catch(() => void tryWebAudioFallback());
+  });
+};
+
+export const playEnglishAudio = (text: string, rate = 1, overridePersona?: VoicePersona, deviceOnly = false): Promise<boolean> => {
+  stopAudio();
+  const clean = normalizeSpeechText(text);
+  if (!clean) return Promise.resolve(true);
+  if (typeof window === 'undefined') return Promise.resolve(false);
+  unlockAudio();
+  const speed = Number.isFinite(rate) ? Math.max(0.7, Math.min(1.3, rate)) : 1;
+  return new Promise(resolve => {
+    let settled = false;
+    const job: Job = { canceled: false, abort: new AbortController(), cleanup: new Set(), finish: ok => {
+      if (settled) return;
+      settled = true;
+      for (const cleanup of [...job.cleanup]) cleanup();
+      job.cleanup.clear(); job.utterance = undefined;
+      if (active === job) active = null;
+      resolve(ok);
+    } };
+    active = job;
+    report({ engine: 'loading', fallback: false, lastError: undefined });
+    void (async () => {
+      const persona = overridePersona || getPreferredVoicePersona();
+      const manual = overridePersona ? '' : getPreferredDeviceVoice();
+      const enabled = !deviceOnly && !manual ? await checkNaturalAudio() : false;
+      if (job.canceled) return;
+      if (enabled) {
+        try { if (await playCloudAudio(clean, persona, speed, job)) { job.finish(true); return; } } catch {}
+        if (job.canceled) return;
+      }
+      if (!synth()?.getVoices().length) await waitForVoices(job);
+      if (job.canceled) return;
+      const engine = synth();
+      if (!engine || typeof SpeechSynthesisUtterance === 'undefined') { report({ engine: 'unavailable', lastError: 'speech_synthesis_unsupported' }); job.finish(false); return; }
+      try {
+        if (engine.paused) engine.resume();
+      } catch {}
+      const initialVoice = selectDeviceVoice(engine.getVoices(), persona, manual);
+      let retried = false;
+      const speak = (voice: SpeechSynthesisVoice | null) => {
+        if (job.canceled || active !== job) return;
+        const utterance = new SpeechSynthesisUtterance(clean);
+        job.utterance = utterance;
+        activeUtterance = utterance;
+        utterance.voice = voice;
+        utterance.lang = voice?.lang || (persona.includes('-uk-') ? 'en-GB' : 'en-US');
+        utterance.rate = speed;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        let started = false;
+        const fail = (error: string) => {
+          if (job.canceled || active !== job) return;
+          report({ engine: 'unavailable', lastError: error });
+          job.finish(false);
+          try { engine.cancel(); } catch {}
+        };
+        const startTimer = setTimeout(() => fail('speech_did_not_start'), 5000);
+        const endTimer = setTimeout(() => fail('speech_timeout'), Math.max(15000, clean.length * 220 / speed));
+        const cleanup = () => {
+          clearTimeout(startTimer);
+          clearTimeout(endTimer);
+          utterance.onstart = null;
+          utterance.onend = null;
+          utterance.onerror = null;
+          if (activeUtterance === utterance) activeUtterance = null;
+        };
+        job.cleanup.add(cleanup);
+        utterance.onstart = () => {
+          if (job.canceled || active !== job) return;
+          started = true;
+          clearTimeout(startTimer);
+          report({ engine: 'device', fallback: !!enabled, lastError: undefined });
+        };
+        utterance.onend = () => {
+          if (!started) { fail('speech_did_not_start'); return; }
+          job.finish(true);
+        };
+        utterance.onerror = (event) => {
+          if (job.canceled || active !== job) return;
+          const error = event.error || 'speech_failed';
+          if (!retried && (error === 'voice-unavailable' || error === 'language-unavailable')) {
+            retried = true;
+            cleanup();
+            job.cleanup.delete(cleanup);
+            const alternate = selectDeviceVoice(engine.getVoices().filter(v => v.voiceURI !== voice?.voiceURI), persona);
+            speak(alternate);
+            return;
+          }
+          fail(error);
+        };
+        try {
+          if (engine.paused) engine.resume();
+          engine.speak(utterance);
+        } catch (error: any) { fail(error?.message || 'speak_exception'); }
+      };
+      speak(initialVoice);
+    })().catch(() => { if (!job.canceled) report({ engine: 'unavailable' }); job.finish(false); });
+  });
+};
+
+// Kept for compatibility; no undocumented Google Translate audio endpoint.
+export const playAudioViaElement = (text: string) => playEnglishAudio(text);
+export const testPlayVoice = (persona: VoicePersona) => playEnglishAudio(VOICE_SAMPLES[persona], 1, persona);
 
 // ==========================================
 // SPEECH RECOGNITION (PRONUNCIATION PRACTICE)

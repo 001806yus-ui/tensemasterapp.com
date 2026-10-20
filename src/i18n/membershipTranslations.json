@@ -1,0 +1,370 @@
+{
+  "Language": {
+    "en": "Language",
+    "es": "Idioma",
+    "fr": "Langue",
+    "de": "Sprache",
+    "it": "Lingua",
+    "pt": "Idioma",
+    "zh": "语言",
+    "hi": "भाषा",
+    "id": "Bahasa",
+    "vi": "Ngôn ngữ",
+    "tr": "Dil",
+    "ar": "اللغة",
+    "ru": "Язык",
+    "ja": "言語"
+  },
+  "Lesson language": {
+    "en": "Lesson language",
+    "es": "Idioma de la lección",
+    "fr": "Langue de la leçon",
+    "de": "Sprache der Lektion",
+    "it": "Lingua della lezione",
+    "pt": "Idioma da lição",
+    "zh": "课程语言",
+    "hi": "पाठ की भाषा",
+    "id": "Bahasa pelajaran",
+    "vi": "Ngôn ngữ bài học",
+    "tr": "Ders dili",
+    "ar": "لغة الدرس",
+    "ru": "Язык урока",
+    "ja": "レッスンの言語"
+  },
+  "All-Access Membership": {
+    "en": "All-Access Membership",
+    "es": "Membresía de acceso completo",
+    "fr": "Abonnement accès complet",
+    "de": "Mitgliedschaft mit vollem Zugang",
+    "it": "Abbonamento con accesso completo",
+    "pt": "Assinatura de acesso completo",
+    "zh": "全课程会员",
+    "hi": "पूर्ण पहुँच सदस्यता",
+    "id": "Keanggotaan akses penuh",
+    "vi": "Gói thành viên toàn quyền truy cập",
+    "tr": "Tam erişim üyeliği",
+    "ar": "عضوية الوصول الكامل",
+    "ru": "Подписка с полным доступом",
+    "ja": "全コース会員プラン"
+  },
+  "USD per month": {
+    "en": "USD per month",
+    "es": "USD al mes",
+    "fr": "USD par mois",
+    "de": "USD pro Monat",
+    "it": "USD al mese",
+    "pt": "USD por mês",
+    "zh": "美元/月",
+    "hi": "USD प्रति माह",
+    "id": "USD per bulan",
+    "vi": "USD mỗi tháng",
+    "tr": "USD / ay",
+    "ar": "دولار أمريكي شهريًا",
+    "ru": "USD в месяц",
+    "ja": "米ドル/月"
+  },
+  "Return to lessons": {
+    "en": "Return to lessons",
+    "es": "Volver a las lecciones",
+    "fr": "Retour aux leçons",
+    "de": "Zurück zu den Lektionen",
+    "it": "Torna alle lezioni",
+    "pt": "Voltar às lições",
+    "zh": "返回课程",
+    "hi": "पाठों पर वापस जाएँ",
+    "id": "Kembali ke pelajaran",
+    "vi": "Quay lại bài học",
+    "tr": "Derslere dön",
+    "ar": "العودة إلى الدروس",
+    "ru": "Вернуться к урокам",
+    "ja": "レッスンに戻る"
+  },
+  "Continue to Stripe": {
+    "en": "Continue to Stripe",
+    "es": "Continuar a Stripe",
+    "fr": "Continuer vers Stripe",
+    "de": "Weiter zu Stripe",
+    "it": "Continua su Stripe",
+    "pt": "Continuar para Stripe",
+    "zh": "前往 Stripe",
+    "hi": "Stripe पर जाएँ",
+    "id": "Lanjut ke Stripe",
+    "vi": "Tiếp tục đến Stripe",
+    "tr": "Stripe'a devam et",
+    "ar": "المتابعة إلى Stripe",
+    "ru": "Перейти в Stripe",
+    "ja": "Stripeに進む"
+  },
+  "Learn at your own pace": {
+    "en": "Learn at your own pace",
+    "es": "Aprende a tu ritmo",
+    "fr": "Apprenez à votre rythme",
+    "de": "Lerne in deinem Tempo",
+    "it": "Impara al tuo ritmo",
+    "pt": "Aprenda no seu ritmo",
+    "zh": "按自己的节奏学习",
+    "hi": "अपनी गति से सीखें",
+    "id": "Belajar sesuai kecepatan Anda",
+    "vi": "Học theo tốc độ của bạn",
+    "tr": "Kendi hızında öğren",
+    "ar": "تعلّم بالسرعة التي تناسبك",
+    "ru": "Учитесь в своём темпе",
+    "ja": "自分のペースで学ぶ"
+  },
+  "All 12 English tenses": {
+    "en": "All 12 English tenses",
+    "es": "Los 12 tiempos del inglés",
+    "fr": "Les 12 temps anglais",
+    "de": "Alle 12 englischen Zeitformen",
+    "it": "Tutti i 12 tempi inglesi",
+    "pt": "Os 12 tempos do inglês",
+    "zh": "全部12种英语时态",
+    "hi": "अंग्रेज़ी के सभी 12 काल",
+    "id": "Semua 12 tenses bahasa Inggris",
+    "vi": "Tất cả 12 thì tiếng Anh",
+    "tr": "12 İngilizce zamanın tümü",
+    "ar": "الأزمنة الإنجليزية الاثنا عشر",
+    "ru": "Все 12 времён английского языка",
+    "ja": "英語の全12時制"
+  },
+  "Interactive exercises and flashcards": {
+    "en": "Interactive exercises and flashcards",
+    "es": "Ejercicios interactivos y tarjetas",
+    "fr": "Exercices interactifs et cartes mémoire",
+    "de": "Interaktive Übungen und Lernkarten",
+    "it": "Esercizi interattivi e flashcard",
+    "pt": "Exercícios interativos e cartões",
+    "zh": "互动练习和学习卡片",
+    "hi": "इंटरैक्टिव अभ्यास और फ्लैशकार्ड",
+    "id": "Latihan interaktif dan kartu belajar",
+    "vi": "Bài tập tương tác và thẻ ghi nhớ",
+    "tr": "Etkileşimli alıştırmalar ve bilgi kartları",
+    "ar": "تمارين تفاعلية وبطاقات تعليمية",
+    "ru": "Интерактивные упражнения и карточки",
+    "ja": "インタラクティブな練習と単語カード"
+  },
+  "Audio and pronunciation practice": {
+    "en": "Audio and pronunciation practice",
+    "es": "Audio y práctica de pronunciación",
+    "fr": "Audio et pratique de la prononciation",
+    "de": "Audio und Ausspracheübungen",
+    "it": "Audio e pratica della pronuncia",
+    "pt": "Áudio e prática de pronúncia",
+    "zh": "音频和发音练习",
+    "hi": "ऑडियो और उच्चारण अभ्यास",
+    "id": "Audio dan latihan pengucapan",
+    "vi": "Âm thanh và luyện phát âm",
+    "tr": "Ses ve telaffuz alıştırmaları",
+    "ar": "الصوت والتدريب على النطق",
+    "ru": "Аудио и практика произношения",
+    "ja": "音声と発音練習"
+  },
+  "Progress tracking and completion certificate": {
+    "en": "Progress tracking and completion certificate",
+    "es": "Seguimiento del progreso y certificado de finalización",
+    "fr": "Suivi des progrès et certificat de fin de cours",
+    "de": "Fortschrittsübersicht und Abschlusszertifikat",
+    "it": "Monitoraggio dei progressi e certificato di completamento",
+    "pt": "Acompanhamento do progresso e certificado de conclusão",
+    "zh": "学习进度跟踪和结业证书",
+    "hi": "प्रगति की जानकारी और पूर्णता प्रमाणपत्र",
+    "id": "Pelacakan kemajuan dan sertifikat penyelesaian",
+    "vi": "Theo dõi tiến độ và chứng nhận hoàn thành",
+    "tr": "İlerleme takibi ve tamamlama sertifikası",
+    "ar": "تتبع التقدم وشهادة الإكمال",
+    "ru": "Отслеживание прогресса и сертификат завершения",
+    "ja": "進捗管理と修了証明書"
+  },
+  "Enrollment opens soon. You can study the free preview lessons now.": {
+    "en": "Enrollment opens soon. You can study the free preview lessons now.",
+    "es": "Las inscripciones abrirán pronto. Ya puedes estudiar las lecciones de prueba gratuitas.",
+    "fr": "Les inscriptions ouvriront bientôt. Les leçons gratuites sont disponibles.",
+    "de": "Die Anmeldung öffnet bald. Die kostenlosen Vorschaulektionen sind bereits verfügbar.",
+    "it": "Le iscrizioni apriranno presto. Puoi già studiare le lezioni gratuite.",
+    "pt": "As inscrições abrirão em breve. Você já pode estudar as lições gratuitas.",
+    "zh": "即将开放注册。现在可以学习免费试听课程。",
+    "hi": "पंजीकरण जल्द शुरू होगा। अभी मुफ़्त प्रारंभिक पाठ पढ़ सकते हैं।",
+    "id": "Pendaftaran segera dibuka. Pelajaran pratinjau gratis sudah tersedia.",
+    "vi": "Sắp mở đăng ký. Bạn có thể học các bài học miễn phí ngay bây giờ.",
+    "tr": "Kayıt yakında açılacak. Ücretsiz örnek dersleri şimdi çalışabilirsiniz.",
+    "ar": "سيفتح التسجيل قريبًا. يمكنك الآن دراسة الدروس التجريبية المجانية.",
+    "ru": "Регистрация скоро откроется. Бесплатные пробные уроки уже доступны.",
+    "ja": "近日登録開始。無料の体験レッスンは今すぐ学習できます。"
+  },
+  "Listen to a sample and choose the voice you prefer.": {
+    "en": "Listen to a sample and choose the voice you prefer.",
+    "es": "Escucha una muestra y elige la voz que prefieras."
+  },
+  "Natural lesson audio is available. Other text uses your device voice.": {
+    "en": "Natural lesson audio is available. Other text uses your device voice.",
+    "es": "El audio natural está disponible para las lecciones. Los demás textos usan la voz de tu dispositivo."
+  },
+  "Audio currently uses the English voices installed on your device.": {
+    "en": "Audio currently uses the English voices installed on your device.",
+    "es": "El audio usa actualmente las voces en inglés instaladas en tu dispositivo."
+  },
+  "Voice preference": {
+    "en": "Voice preference",
+    "es": "Preferencia de voz"
+  },
+  "American English · female preference": {
+    "en": "American English · female preference",
+    "es": "Inglés americano · preferencia de voz femenina"
+  },
+  "American English · male preference": {
+    "en": "American English · male preference",
+    "es": "Inglés americano · preferencia de voz masculina"
+  },
+  "British English · female preference": {
+    "en": "British English · female preference",
+    "es": "Inglés británico · preferencia de voz femenina"
+  },
+  "British English · male preference": {
+    "en": "British English · male preference",
+    "es": "Inglés británico · preferencia de voz masculina"
+  },
+  "Speaking…": {
+    "en": "Speaking…",
+    "es": "Hablando…"
+  },
+  "Listen": {
+    "en": "Listen",
+    "es": "Escuchar"
+  },
+  "Device voice": {
+    "en": "Device voice",
+    "es": "Voz del dispositivo"
+  },
+  "Automatic selection": {
+    "en": "Automatic selection",
+    "es": "Selección automática"
+  },
+  "Selected device voice": {
+    "en": "Selected device voice",
+    "es": "Voz seleccionada del dispositivo"
+  },
+  "Browser default": {
+    "en": "Browser default",
+    "es": "Predeterminada del navegador"
+  },
+  "Voice availability varies by device. Accent and gender are preferences.": {
+    "en": "Voice availability varies by device. Accent and gender are preferences.",
+    "es": "Las voces disponibles cambian según el dispositivo. El acento y el género son preferencias."
+  },
+  "Audio could not play. Try another voice or check your browser audio settings.": {
+    "en": "Audio could not play. Try another voice or check your browser audio settings.",
+    "es": "No se pudo reproducir el audio. Prueba otra voz o revisa el audio de tu navegador."
+  },
+  "Natural audio was unavailable for this text. Your device voice is playing.": {
+    "en": "Natural audio was unavailable for this text. Your device voice is playing.",
+    "es": "El audio natural no estaba disponible para este texto. Se está usando la voz de tu dispositivo."
+  },
+  "Save and continue": {
+    "en": "Save and continue",
+    "es": "Guardar y continuar"
+  },
+  "All 12 tenses included in one subscription — US$5.99/month. No separate charge per lesson.": {
+    "en": "All 12 tenses included in one subscription — US$5.99/month. No separate charge per lesson.",
+    "es": "Todos los 12 tiempos verbales incluidos en una sola suscripción — US$5.99/mes. Sin cobros separados por lección.",
+    "fr": "Tous les 12 temps inclus dans un seul abonnement — 5,99 $US/mois. Aucun frais séparé par leçon.",
+    "de": "Alle 12 Zeitformen in einem Abonnement enthalten — 5,99 US-Dollar/Monat. Keine separate Gebühr pro Lektion.",
+    "it": "Tutti i 12 tempi verbali inclusi in un unico abbonamento — 5,99 $USD/mese. Nessun costo separato per lezione.",
+    "pt": "Todos os 12 tempos verbais incluídos em uma única assinatura — US$ 5,99/mês. Sem cobrança separada por lição."
+  },
+  "You have 1 exercise left today to extend your streak to {{0}} days.": {
+    "en": "You have 1 exercise left today to extend your streak to {{0}} days.",
+    "es": "Te falta 1 ejercicio hoy para extender tu racha a {{0}} días.",
+    "fr": "Il vous reste 1 exercice aujourd'hui pour prolonger votre série à {{0}} jours.",
+    "de": "Du hast heute noch 1 Übung übrig, um deine Serie auf {{0}} Tage zu verlängern.",
+    "it": "Ti manca 1 esercizio oggi per estendere la tua serie a {{0}} giorni.",
+    "pt": "Falta 1 exercício hoje para estender sua sequência para {{0}} dias."
+  },
+  "You have {{0}} exercises left today to extend your streak to {{1}} days.": {
+    "en": "You have {{0}} exercises left today to extend your streak to {{1}} days.",
+    "es": "Te faltan {{0}} ejercicios hoy para extender tu racha a {{1}} días.",
+    "fr": "Il vous reste {{0}} exercices aujourd'hui pour prolonger votre série à {{1}} jours.",
+    "de": "Du hast heute noch {{0}} Übungen übrig, um deine Serie auf {{1}} Tage zu verlängern.",
+    "it": "Ti mancano {{0}} esercizi oggi per estendere la tua serie a {{1}} giorni.",
+    "pt": "Faltam {{0}} exercícios hoje para estender sua sequência para {{1}} dias."
+  },
+  "Today's goal completed! Your streak is safe for tomorrow.": {
+    "en": "Today's goal completed! Your streak is safe for tomorrow.",
+    "es": "¡Objetivo de hoy completado! Tu racha está a salvo para mañana.",
+    "fr": "Objectif du jour atteint ! Votre série est en sécurité pour demain.",
+    "de": "Tagesziel erreicht! Deine Serie ist für morgen sicher.",
+    "it": "Obiettivo di oggi completato! La tua serie è al sicuro per domani.",
+    "pt": "Meta de hoje concluída! Sua sequência está salva para amanhã."
+  },
+  "Swipe to see more": {
+    "en": "Swipe to see more",
+    "es": "Desliza para ver más",
+    "fr": "Glissez pour en voir plus",
+    "de": "Wischen, um mehr zu sehen",
+    "it": "Scorri per vedere di più",
+    "pt": "Deslize para ver mais"
+  },
+  "Active Streak": {
+    "en": "Active Streak",
+    "es": "Racha Activa"
+  },
+  "Daily Study Goal": {
+    "en": "Daily Study Goal",
+    "es": "Meta Diaria de Estudio"
+  },
+  "Today's progress: {{0}} of {{1}} exercises": {
+    "en": "Today's progress: {{0}} of {{1}} exercises",
+    "es": "Progreso de hoy: {{0}} de {{1}} ejercicios"
+  },
+  "Today's goal achieved! (+50 XP bonus)": {
+    "en": "Today's goal achieved! (+50 XP bonus)",
+    "es": "¡Meta del día conseguida! (+50 XP bonus)"
+  },
+  "Complete a quick 2-minute session to keep your streak alive.": {
+    "en": "Complete a quick 2-minute session to keep your streak alive.",
+    "es": "Completa una sesión rápida de 2 minutos para mantener la llama."
+  },
+  "+1 Quick Practice (+25 XP)": {
+    "en": "+1 Quick Practice (+25 XP)",
+    "es": "+1 Práctica Rápida (+25 XP)"
+  },
+  "Practice {{0}}": {
+    "en": "Practice {{0}}",
+    "es": "Hacer Taller de {{0}}"
+  },
+  "Streak Protection Shield": {
+    "en": "Streak Protection Shield",
+    "es": "Escudo Protector de Racha"
+  },
+  "1 Available": {
+    "en": "1 Available",
+    "es": "1 Disponible"
+  },
+  "Streak Freeze": {
+    "en": "Streak Freeze",
+    "es": "Congelador de Racha"
+  },
+  "Busy day or traveling? Activating your freeze protects your {{0}} day streak even if you cannot practice today.": {
+    "en": "Busy day or traveling? Activating your freeze protects your {{0}} day streak even if you cannot practice today.",
+    "es": "¿Día ocupado o de viaje? Si activas tu congelador, no perderás tus {{0}} días de racha aunque no puedas practicar hoy."
+  },
+  "Consistency Milestones & Unlockable Achievements": {
+    "en": "Consistency Milestones & Unlockable Achievements",
+    "es": "Hitos de Constancia y Logros Desbloqueables"
+  },
+  "Next milestone: ": {
+    "en": "Next milestone: ",
+    "es": "Próximo hito: "
+  },
+  "Guided Practice": {
+    "en": "Guided Practice",
+    "es": "Práctica Guiada"
+  },
+  "Structured Practice for All 12 Tenses": {
+    "en": "Structured Practice for All 12 Tenses",
+    "es": "Práctica estructurada para los 12 tiempos verbales"
+  },
+  "No English voice was found on your device. Please ensure an English TTS voice is installed.": {
+    "en": "No English voice was found on your device. Please ensure an English TTS voice is installed.",
+    "es": "No se encontró una voz en inglés en tu dispositivo. Asegúrate de tener instalada una voz TTS en inglés."
+  }
+}

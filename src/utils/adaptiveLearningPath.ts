@@ -48,11 +48,15 @@ const normalizeTenseId = (id: string): string => {
   return id;
 };
 
+import { SupportedLanguage } from '../i18n/translations';
+
 export function getAdaptiveLearningRecommendation(
   tenseProgress: Record<string, TenseProgress>,
   diagnosticResult: DiagnosticResult | null | undefined,
-  weakTenses: string[] = []
+  weakTenses: string[] = [],
+  lang: SupportedLanguage = 'en'
 ): AdaptivePathRecommendation {
+  const isEn = lang === 'en';
   const tensesMap = new Map<string, TenseData>();
   ALL_12_TENSES.forEach((t) => tensesMap.set(t.id, t));
 
@@ -69,9 +73,11 @@ export function getAdaptiveLearningRecommendation(
       return {
         recommendedTense: tense,
         reasonType: 'weakness-reinforcement',
-        reasonTitle: 'Refuerzo de Precisión Prioritario',
-        reasonDescription: `Tu precisión reciente fue del ${prog.score}%. Practicar este tiempo ahora consolidará tus cimientos antes de avanzar.`,
-        badgeLabel: '⚡ Refuerzo Urgente',
+        reasonTitle: isEn ? 'Priority Precision Reinforcement' : 'Refuerzo de Precisión Prioritario',
+        reasonDescription: isEn
+          ? `Your recent accuracy was ${prog.score}%. Practicing this tense now will consolidate your foundations before advancing.`
+          : `Tu precisión reciente fue del ${prog.score}%. Practicar este tiempo ahora consolidará tus cimientos antes de avanzar.`,
+        badgeLabel: isEn ? '⚡ Priority Review' : '⚡ Refuerzo Urgente',
         badgeColorClasses: 'bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700',
         progress: prog,
         completionRate: Math.round((prog.exercisesDone / (prog.totalExercises || 1)) * 100),
@@ -95,9 +101,13 @@ export function getAdaptiveLearningRecommendation(
         return {
           recommendedTense: tense,
           reasonType: 'diagnostic-priority',
-          reasonTitle: `Recomendado por Test de Nivel (${diagnosticResult?.levelCode || 'CEFR'})`,
-          reasonDescription: `Identificado como tu objetivo clave de aprendizaje para alcanzar fluidez según tus resultados en la evaluación inicial.`,
-          badgeLabel: '🎯 Prioridad del Diagnóstico',
+          reasonTitle: isEn
+            ? `Recommended by Diagnostic (${diagnosticResult?.levelCode || 'CEFR'})`
+            : `Recomendado por Test de Nivel (${diagnosticResult?.levelCode || 'CEFR'})`,
+          reasonDescription: isEn
+            ? `Identified as your key learning target to achieve conversational fluency based on your assessment.`
+            : `Identificado como tu objetivo clave de aprendizaje para alcanzar fluidez según tus resultados en la evaluación inicial.`,
+          badgeLabel: isEn ? '🎯 Diagnostic Priority' : '🎯 Prioridad del Diagnóstico',
           badgeColorClasses: 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700',
           progress: prog || null,
           completionRate: prog ? Math.round((prog.exercisesDone / (prog.totalExercises || 1)) * 100) : 0,
@@ -119,9 +129,11 @@ export function getAdaptiveLearningRecommendation(
       return {
         recommendedTense: tense,
         reasonType: 'continue-session',
-        reasonTitle: 'Continúa Tu Lección Abierta',
-        reasonDescription: `Tienes ${prog.exercisesDone} de ${prog.totalExercises} ejercicios completados. ¡Termina este bloque para sumar XP y mantener tu racha!`,
-        badgeLabel: '📌 En Progreso',
+        reasonTitle: isEn ? 'Continue Your Active Lesson' : 'Continúa Tu Lección Abierta',
+        reasonDescription: isEn
+          ? `You have completed ${prog.exercisesDone} of ${prog.totalExercises} exercises. Finish this block to earn XP and maintain your streak!`
+          : `Tienes ${prog.exercisesDone} de ${prog.totalExercises} ejercicios completados. ¡Termina este bloque para sumar XP y mantener tu racha!`,
+        badgeLabel: isEn ? '📌 In Progress' : '📌 En Progreso',
         badgeColorClasses: 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700',
         progress: prog,
         completionRate: Math.round((prog.exercisesDone / (prog.totalExercises || 1)) * 100),
@@ -145,11 +157,13 @@ export function getAdaptiveLearningRecommendation(
       return {
         recommendedTense: tense,
         reasonType: isFirst ? 'foundation-start' : 'next-pedagogical-step',
-        reasonTitle: isFirst ? 'Punto de Partida Fundamental (A1)' : 'Siguiente Escalón en tu Ruta',
+        reasonTitle: isFirst
+          ? (isEn ? 'Core Starting Point (A1)' : 'Punto de Partida Fundamental (A1)')
+          : (isEn ? 'Next Step on Your Path' : 'Siguiente Escalón en tu Ruta'),
         reasonDescription: isFirst
-          ? 'El cimiento absoluto del inglés conversacional y rutinas diarias. Perfecto para dominar antes de avanzar.'
-          : 'Has superado los tiempos anteriores. Este es el siguiente paso lógico en la jerarquía pedagógica.',
-        badgeLabel: isFirst ? '🌱 Base Recomendada' : '🚀 Siguiente Nivel',
+          ? (isEn ? 'The essential foundation of conversational English and daily routines. Master this before moving forward.' : 'El cimiento absoluto del inglés conversacional y rutinas diarias. Perfecto para dominar antes de avanzar.')
+          : (isEn ? 'You have progressed past previous tenses. This is your logical next milestone in the pedagogical roadmap.' : 'Has superado los tiempos anteriores. Este es el siguiente paso lógico en la jerarquía pedagógica.'),
+        badgeLabel: isFirst ? (isEn ? '🌱 Recommended Base' : '🌱 Base Recomendada') : (isEn ? '🚀 Next Level' : '🚀 Siguiente Nivel'),
         badgeColorClasses: 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
         progress: prog || null,
         completionRate: prog ? Math.round((prog.exercisesDone / (prog.totalExercises || 1)) * 100) : 0,
@@ -179,9 +193,11 @@ export function getAdaptiveLearningRecommendation(
   return {
     recommendedTense: lowestTense,
     reasonType: 'spaced-repetition',
-    reasonTitle: 'Repetición Espaciada para Retención (SRS)',
-    reasonDescription: `¡Has explorado todos los 12 tiempos! Repasar ${lowestTense.spanishName} fortalecerá tus conexiones neuronales a largo plazo.`,
-    badgeLabel: '🧠 Repaso de Maestría',
+    reasonTitle: isEn ? 'Spaced Repetition Review (SRS)' : 'Repetición Espaciada para Retención (SRS)',
+    reasonDescription: isEn
+      ? `You have explored all 12 tenses! Reviewing ${lowestTense.name} reinforces long-term memory.`
+      : `¡Has explorado todos los 12 tiempos! Repasar ${lowestTense.spanishName} fortalecerá tus conexiones neuronales a largo plazo.`,
+    badgeLabel: isEn ? '🧠 Retention Review' : '🧠 Repaso de Maestría',
     badgeColorClasses: 'bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-700',
     progress: prog || null,
     completionRate: 100,

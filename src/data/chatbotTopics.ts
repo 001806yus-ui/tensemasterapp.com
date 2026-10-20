@@ -10,6 +10,7 @@ export interface ChatTopicConfig {
   initialBotMessage: string;
   initialBotTranslation: string;
   starterUserPrompts: string[];
+  photoUrl?: string;
 }
 
 export const CHAT_TOPICS: ChatTopicConfig[] = [
@@ -17,9 +18,10 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
     id: 'daily_routine',
     title: 'Daily Routine & Habits',
     subtitle: 'Hábitos diarios y rutinas (Nivel Básico A1-A2)',
-    icon: '☀️',
+    icon: '☕',
     difficulty: 'beginner',
     targetTenses: ['Present Simple', 'Adverbs of Frequency'],
+    photoUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "Hello! It's so nice to meet you. Tell me, what time do you usually wake up, and what is the very first thing you do in the morning?",
     initialBotTranslation: "¡Hola! Qué gusto saludarte. Cuéntame, ¿a qué hora sueles despertarte y qué es lo primero que haces por la mañana?",
     starterUserPrompts: [
@@ -35,6 +37,7 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
     icon: '✈️',
     difficulty: 'intermediate',
     targetTenses: ['Past Simple', 'Past Continuous', 'Present Perfect'],
+    photoUrl: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "Welcome to our travel lounge! Have you ever traveled to another country, or is there a special place you visited recently that you loved?",
     initialBotTranslation: "¿Alguna vez has viajado a otro país o hay algún lugar especial que hayas visitado recientemente y te haya encantado?",
     starterUserPrompts: [
@@ -50,6 +53,7 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
     icon: '💼',
     difficulty: 'advanced',
     targetTenses: ['Present Perfect Continuous', 'Past Simple', 'Conditionals'],
+    photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "Welcome! Thank you for coming today. Could you tell me a little bit about your professional background and what you have been working on recently?",
     initialBotTranslation: "¡Bienvenido/a! Gracias por venir hoy. ¿Podrías contarme un poco sobre tu trayectoria y en qué has estado trabajando recientemente?",
     starterUserPrompts: [
@@ -60,11 +64,12 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
   },
   {
     id: 'restaurant_food',
-    title: 'At the Restaurant',
+    title: 'At the Restaurant & Cafe',
     subtitle: 'Pedir comida, preferencias y quejas (Nivel A2-B1)',
     icon: '🍽️',
     difficulty: 'beginner',
     targetTenses: ['Would like', 'Present Simple', 'Future with Will'],
+    photoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "Good evening! Welcome to The Bistro. Table for one or two? Are you ready to order, or would you like to hear today's chef specials first?",
     initialBotTranslation: "¡Buenas noches! Bienvenido/a a The Bistro. ¿Mesa para uno o para dos? ¿Listo/a para ordenar o le gustaría escuchar primero los especiales del chef?",
     starterUserPrompts: [
@@ -80,6 +85,7 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
     icon: '🎭',
     difficulty: 'intermediate',
     targetTenses: ['Past Simple', 'Past Continuous', 'Past Perfect'],
+    photoUrl: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "I love great stories! Tell me about a strange, funny, or surprising coincidence that happened to you in the past.",
     initialBotTranslation: "¡Me encantan las buenas historias! Cuéntame una coincidencia extraña, divertida o sorprendente que te haya ocurrido en el pasado.",
     starterUserPrompts: [
@@ -95,6 +101,7 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
     icon: '🔮',
     difficulty: 'intermediate',
     targetTenses: ['Going to', 'Will', 'Future Continuous', 'Future Perfect'],
+    photoUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "Let's talk about the future! What are you planning to do this coming weekend, and where do you see yourself in five years?",
     initialBotTranslation: "¡Hablemos del futuro! ¿Qué tienes pensado hacer este fin de semana y dónde te ves dentro de cinco años?",
     starterUserPrompts: [
@@ -110,6 +117,7 @@ export const CHAT_TOPICS: ChatTopicConfig[] = [
     icon: '📊',
     difficulty: 'advanced',
     targetTenses: ['Conditionals (2nd & 3rd)', 'Modal Verbs', 'Future Perfect'],
+    photoUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80',
     initialBotMessage: "Good morning team. We need to evaluate the quarterly performance indicators before pitching to the board. In your opinion, what strategy should we adopt if market volatility increases?",
     initialBotTranslation: "Buenos días equipo. Necesitamos evaluar los indicadores trimestrales antes de presentarlos a la junta. En su opinión, ¿qué estrategia deberíamos adoptar si aumenta la volatilidad del mercado?",
     starterUserPrompts: [

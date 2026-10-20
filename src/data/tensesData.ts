@@ -458,12 +458,12 @@ export const ALL_12_TENSES: TenseData[] = [
       {
         title: 'Acciones pasadas con resultado visible hoy',
         description: 'La acción terminó, pero su efecto se siente en este momento.',
-        example: 'I have lost my keys (resultado: no puedo entrar a mi casa ahora).'
+        example: 'I have lost my keys (present result: I cannot enter my house now).'
       },
       {
         title: 'Periodos de tiempo aún no terminados',
         description: 'Con expresiones como "today", "this week", "this year".',
-        example: 'I have drunk three cups of coffee today (el día no ha terminado).'
+        example: 'I have drunk three cups of coffee today (today is not over yet).'
       }
     ],
     signalWords: ['already', 'yet', 'just', 'ever', 'never', 'since', 'for', 'recently', 'so far'],

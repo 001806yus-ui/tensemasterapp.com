@@ -1,7 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { UserProgressState, TenseProgress, UserSubscription, PushReminderSettings, DiagnosticResult, OwnerBusinessConfig } from '../types';
 import { ALL_12_TENSES } from '../data/tensesData';
-import { SupportedLanguage, TRANSLATIONS, LocaleTranslations } from '../i18n/translations';
+import {
+  SupportedLanguage,
+  TRANSLATIONS,
+  LocaleTranslations,
+  SUPPORTED_LANGUAGES,
+  LanguageOption,
+  TENSE_LOCALIZED_NAMES,
+  getTenseExampleTranslation
+} from '../i18n/translations';
+import { MEMBERSHIP } from '../config/membership';
 import { DEFAULT_REMINDER_SETTINGS, sendPushNotification } from '../utils/notifications';
 import { generateProgressPDF } from '../utils/pdfExport';
 
@@ -10,7 +19,12 @@ interface UserContextType {
   isPro: boolean;
   nativeLanguage: SupportedLanguage;
   setNativeLanguage: (lang: SupportedLanguage) => void;
+  currentLangOption: LanguageOption;
   t: LocaleTranslations;
+  translate: (key: keyof LocaleTranslations, fallback?: string) => string;
+  getTenseName: (tenseId: string) => string;
+  getTenseTagline: (tenseId: string) => string;
+  getExampleTranslation: (tenseId: string, defaultSpanish?: string) => string;
   reminderSettings: PushReminderSettings;
   updateReminderSettings: (newSettings: PushReminderSettings) => void;
   isSimulatedOffline: boolean;
@@ -38,93 +52,64 @@ interface UserContextType {
   weakTenses: string[];
   ownerConfig: OwnerBusinessConfig;
   updateOwnerConfig: (partial: Partial<OwnerBusinessConfig>) => void;
+  isOwnerAuthenticated: boolean;
+  verifyOwnerPIN: (pin: string) => boolean;
+  logoutOwner: () => void;
   unlockOwnerAccess: () => void;
 }
 
 const STORAGE_KEY = 'tensemaster_user_progress_v2';
-const LANG_STORAGE_KEY = 'tensemaster_native_language';
+const LANG_STORAGE_KEY = 'tensemaster_interface_language_v3';
 const REMINDERS_STORAGE_KEY = 'tensemaster_push_reminders';
 const DARK_STORAGE_KEY = 'tensemaster_dark_mode';
 const OWNER_STORAGE_KEY = 'tensemaster_owner_config';
 
 const DEFAULT_OWNER_CONFIG: OwnerBusinessConfig = {
-  stripePaymentLink: 'https://buy.stripe.com/test_123tuingles',
+  stripePaymentLink: '',
   mercadoPagoLink: '',
   customDomain: 'www.tensemasterapp.com',
   supportEmail: 'contacto@tensemasterapp.com',
   currencyCode: 'USD',
-  priceMonthly: 1.99,
-  promoCodeActive: 'PRIMERMES',
+  priceMonthly: MEMBERSHIP.monthlyUSD,
+  promoCodeActive: 'PROMO599',
   allTensesFreeMode: false
 };
 
 const getInitialState = (): UserProgressState => {
   const today = new Date().toISOString().split('T')[0];
   
-  // Create past dates for the 4-day streak demonstration
-  const d1 = new Date();
-  d1.setDate(d1.getDate() - 1);
-  const d2 = new Date();
-  d2.setDate(d2.getDate() - 2);
-  const d3 = new Date();
-  d3.setDate(d3.getDate() - 3);
-
   const initialTenseProgress: Record<string, TenseProgress> = {};
-
-  ALL_12_TENSES.forEach((t, index) => {
-    // Seed slight progress for first tense to demonstrate progress tracker immediately
-    if (index === 0) {
-      initialTenseProgress[t.id] = {
-        tenseId: t.id,
-        status: 'in-progress',
-        score: 85,
-        exercisesDone: 3,
-        totalExercises: t.exercises.length,
-        lastStudiedAt: today,
-        practiceCount: 3
-      };
-    } else {
-      initialTenseProgress[t.id] = {
-        tenseId: t.id,
-        status: 'not-started',
-        score: 0,
-        exercisesDone: 0,
-        totalExercises: t.exercises.length,
-        lastStudiedAt: null,
-        practiceCount: 0
-      };
-    }
+  ALL_12_TENSES.forEach((tense) => {
+    initialTenseProgress[tense.id] = {
+      tenseId: tense.id, status: 'not-started', score: 0, exercisesDone: 0,
+      totalExercises: tense.exercises.length, lastStudiedAt: null, practiceCount: 0
+    };
   });
 
   return {
-    userName: 'Estudiante de Inglés',
-    userEmail: 'estudiante@ejemplo.com',
-    streakDays: 4,
+    userName: 'English Learner',
+    userEmail: 'learner@example.com',
+    streakDays: 0,
     lastActiveDate: today,
-    activeDates: [
-      d3.toISOString().split('T')[0],
-      d2.toISOString().split('T')[0],
-      d1.toISOString().split('T')[0],
-      today
-    ],
+    activeDates: [],
     dailyGoalExercises: 3,
-    todayExercisesCount: 2,
+    todayExercisesCount: 0,
     streakFreezeAvailable: true,
     streakFreezeUsed: false,
-    totalXP: 360,
-    totalMinutesSpent: 42,
-    totalExercisesCompleted: 3,
+    totalXP: 0,
+    totalMinutesSpent: 0,
+    totalExercisesCompleted: 0,
     subscription: {
       isPro: false,
-      planName: 'Prueba Gratuita (2 Tiempos)',
-      priceUSD: 1.0,
+      planName: 'Free Trial (2 Tenses)',
+      priceUSD: MEMBERSHIP.monthlyUSD,
       startDate: null,
       renewalDate: null,
       paymentMethod: null,
       transactionId: null
     },
     tenseProgress: initialTenseProgress,
-    bookmarkedTenses: ['present-simple', 'past-simple']
+    bookmarkedTenses: []
   };
 };
 
@@ -140,10 +125,11 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       // fallback
     }
-    return 'es';
+    return 'en';
   });
 
   const setNativeLanguage = (lang: SupportedLanguage) => {
+    if (!SUPPORTED_LANGUAGES.some((option) => option.code === lang)) return;
     setNativeLanguageState(lang);
     try {
       localStorage.setItem(LANG_STORAGE_KEY, lang);
@@ -152,7 +138,43 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const t = TRANSLATIONS[nativeLanguage] || TRANSLATIONS.es;
+  useEffect(() => {
+    document.documentElement.lang = nativeLanguage;
+    document.documentElement.dir = nativeLanguage === 'ar' ? 'rtl' : 'ltr';
+  }, [nativeLanguage]);
+
+  const currentLangOption = useMemo(() => {
+    return SUPPORTED_LANGUAGES.find((l) => l.code === nativeLanguage) || SUPPORTED_LANGUAGES[0];
+  }, [nativeLanguage]);
+
+  const t: LocaleTranslations = useMemo(() => {
+    const raw = TRANSLATIONS[nativeLanguage] || TRANSLATIONS.en;
+    return { ...TRANSLATIONS.en, ...raw };
+  }, [nativeLanguage]);
+
+  const translate = useCallback((key: keyof LocaleTranslations, fallback?: string): string => {
+    return (t[key] as string) || fallback || (TRANSLATIONS.en[key] as string) || '';
+  }, [t]);
+
+  const getTenseName = useCallback((tenseId: string): string => {
+    if (nativeLanguage === 'en') {
+      const match = ALL_12_TENSES.find((x) => x.id === tenseId);
+      return match ? match.name : '';
+    }
+    return TENSE_LOCALIZED_NAMES[tenseId]?.[nativeLanguage]?.name || ALL_12_TENSES.find((x) => x.id === tenseId)?.spanishName || '';
+  }, [nativeLanguage]);
+
+  const getTenseTagline = useCallback((tenseId: string): string => {
+    if (nativeLanguage === 'en') {
+      const match = ALL_12_TENSES.find((x) => x.id === tenseId);
+      return match ? match.tagline : '';
+    }
+    return TENSE_LOCALIZED_NAMES[tenseId]?.[nativeLanguage]?.tagline || ALL_12_TENSES.find((x) => x.id === tenseId)?.tagline || '';
+  }, [nativeLanguage]);
+
+  const getExampleTranslation = useCallback((tenseId: string, defaultSpanish?: string): string => {
+    return getTenseExampleTranslation(tenseId, nativeLanguage, defaultSpanish);
+  }, [nativeLanguage]);
 
   const [progressState, setProgressState] = useState<UserProgressState>(() => {
     try {
@@ -173,7 +195,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
           }
         });
-        return parsed;
+        return { ...parsed, subscription: { ...parsed.subscription, priceUSD: MEMBERSHIP.monthlyUSD } };
       }
     } catch (e) {
       console.error('Failed to load user state from localStorage', e);
@@ -258,10 +280,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, []);
 
-  const isPro = progressState.subscription.isPro;
+  // Browser storage is a preview record, not proof of a paid subscription.
+  const previewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_OWNER_PREVIEW === 'true';
+  const isPro = previewEnabled && progressState.subscription.isPro;
 
   const canAccessTense = (tenseId: string): boolean => {
-    if (isPro || ownerConfig.allTensesFreeMode) return true;
+    if (isPro || (previewEnabled && ownerConfig.allTensesFreeMode)) return true;
     const tense = ALL_12_TENSES.find((t) => t.id === tenseId);
     return tense ? tense.isFreePreview : false;
   };
@@ -377,14 +401,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const subscribePro = (paymentMethod: string) => {
+    if (!previewEnabled) return;
     const today = new Date();
     const renewal = new Date();
     renewal.setMonth(today.getMonth() + 1);
 
-    const price = ownerConfig?.priceMonthly || 1.99;
+    const price = MEMBERSHIP.monthlyUSD;
     const subscription: UserSubscription = {
       isPro: true,
-      planName: `Pase Total Ilimitado ($${price.toFixed(2)} USD/mes)`,
+      planName: `All-Access Pass ($${price.toFixed(2)} USD/month)`,
       priceUSD: price,
       startDate: today.toISOString(),
       renewalDate: renewal.toISOString(),
@@ -403,8 +428,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
       subscription: {
         isPro: false,
-        planName: 'Prueba Gratuita (2 Tiempos)',
-        priceUSD: 1.0,
+        planName: 'Free Preview (2 Tenses)',
+        priceUSD: MEMBERSHIP.monthlyUSD,
         startDate: null,
         renewalDate: null,
         paymentMethod: null,
@@ -413,6 +438,38 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  const [isOwnerAuthenticated, setIsOwnerAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('tensemaster_owner_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const verifyOwnerPIN = useCallback((pin: string): boolean => {
+    if (!previewEnabled) return false;
+    const clean = pin.trim();
+    if (clean === '2026' || clean === 'admin2026' || clean === 'dueña2026') {
+      setIsOwnerAuthenticated(true);
+      try {
+        localStorage.setItem('tensemaster_owner_auth', 'true');
+      } catch {
+        // ignore
+      }
+      return true;
+    }
+    return false;
+  }, [previewEnabled]);
+
+  const logoutOwner = useCallback(() => {
+    setIsOwnerAuthenticated(false);
+    try {
+      localStorage.removeItem('tensemaster_owner_auth');
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const unlockOwnerAccess = () => {
     subscribePro('👑 Acceso Total Dueña (Gratuito y Vitalicio)');
   };
@@ -420,7 +477,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setUserName = (name: string) => {
     setProgressState((prev) => ({
       ...prev,
-      userName: name.trim() || 'Estudiante'
+      userName: name.trim() || 'English Learner'
     }));
   };
 
@@ -490,7 +547,24 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [ownerConfig, setOwnerConfig] = useState<OwnerBusinessConfig>(() => {
     try {
       const saved = localStorage.getItem(OWNER_STORAGE_KEY);
-      if (saved) return { ...DEFAULT_OWNER_CONFIG, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const price = MEMBERSHIP.monthlyUSD;
+        const merged = {
+          ...DEFAULT_OWNER_CONFIG,
+          ...parsed,
+          priceMonthly: price,
+          allTensesFreeMode: false
+        };
+        delete (merged as any).originalPrice;
+        delete (merged as any).discountPercent;
+        try {
+          localStorage.setItem(OWNER_STORAGE_KEY, JSON.stringify(merged));
+        } catch {
+          // ignore
+        }
+        return merged;
+      }
     } catch (e) {
       console.error('Failed to load ownerConfig', e);
     }
@@ -499,7 +573,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateOwnerConfig = (partial: Partial<OwnerBusinessConfig>) => {
     setOwnerConfig((prev) => {
-      const updated = { ...prev, ...partial };
+      const updated = { ...prev, ...partial, priceMonthly: MEMBERSHIP.monthlyUSD };
       try {
         localStorage.setItem(OWNER_STORAGE_KEY, JSON.stringify(updated));
       } catch (e) {
@@ -516,7 +590,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPro,
         nativeLanguage,
         setNativeLanguage,
+        currentLangOption,
         t,
+        translate,
+        getTenseName,
+        getTenseTagline,
+        getExampleTranslation,
         reminderSettings,
         updateReminderSettings,
         isSimulatedOffline,
@@ -544,6 +623,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         weakTenses,
         ownerConfig,
         updateOwnerConfig,
+        isOwnerAuthenticated,
+        verifyOwnerPIN,
+        logoutOwner,
         unlockOwnerAccess
       }}
     >

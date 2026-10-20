@@ -3,16 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TenseMaster</title>
+    <title>TenseMaster - Master the 12 English Tenses</title>
+    
+    <!-- Core SEO & Search Visibility -->
     <meta name="google-site-verification" content="tEuF86PykES4u-JR7TheWhk_iBTnbwtg470VGuouFn0" />
-    <meta name="description" content="Open the current TenseMaster English learning app." />
-    <script>
-      window.location.replace("https://tensemaster1-369588566740.us-west1.run.app/" + window.location.search + window.location.hash);
+    <meta name="description" content="Master all 12 English verb tenses through real-life situations, visual timeline anchors, 24/7 AI Tutor with instant feedback, native audio, and interactive exercises for $5.99/mo (25% OFF)." />
+    <meta name="keywords" content="12 English tenses, English verb tenses, English grammar, learn English tenses, interactive English practice, native pronunciation, present simple, past simple, present perfect" />
+    <meta name="author" content="TenseMaster" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://tensemasterapp.com" />
+
+    <!-- Open Graph / Facebook / WhatsApp / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TenseMaster" />
+    <meta property="og:title" content="TenseMaster - Master the 12 English Tenses" />
+    <meta property="og:description" content="Master all 12 English verb tenses through real-life situations, visual timeline anchors, 24/7 AI Tutor with instant feedback, native audio, and interactive exercises for $5.99/mo (25% OFF)." />
+    <meta property="og:url" content="https://tensemasterapp.com" />
+    <meta property="og:image" content="https://tensemasterapp.com/icon.svg" />
+    <meta property="og:image:alt" content="TenseMaster - Interactive English Grammar & Tenses Platform" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TenseMaster - Master the 12 English Tenses" />
+    <meta name="twitter:description" content="Master all 12 English verb tenses through real-life situations, visual timeline anchors, 24/7 AI Tutor with instant feedback, native audio, and interactive exercises for $5.99/mo (25% OFF)." />
+    <meta name="twitter:image" content="https://tensemasterapp.com/icon.svg" />
+
+    <!-- PWA & Mobile Web App Config -->
+    <meta name="theme-color" content="#4F46E5" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TenseMaster" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Schema.org JSON-LD Structured Data for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://tensemasterapp.com/#webapp",
+          "name": "TenseMaster - Master the 12 English Tenses",
+          "url": "https://tensemasterapp.com",
+          "description": "Interactive educational web platform to master all 12 English verb tenses with step-by-step grammar formulas, native pronunciation audio, and evaluated practice exercises.",
+          "applicationCategory": "EducationalApplication",
+          "operatingSystem": "All",
+          "inLanguage": ["en", "es", "fr", "de", "pt", "it", "zh", "hi", "id", "vi", "tr", "ar", "ru", "ja"],
+          "offers": {
+            "@type": "Offer",
+            "price": "5.99",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "featureList": [
+            "Complete coverage of all 12 English verb tenses",
+            "Affirmative, negative, and interrogative structural formulas",
+            "Native audio with speech recognition pronunciation practice",
+            "Interactive quizzes with immediate pedagogical feedback",
+            "Adaptive progress tracking and CEFR grammar mastery"
+          ]
+        },
+        {
+          "@type": "Course",
+          "@id": "https://tensemasterapp.com/#course",
+          "name": "The 12 English Verb Tenses - From Zero to Mastery",
+          "description": "Comprehensive, interactive English grammar course teaching present, past, and future in their simple, continuous, perfect, and perfect continuous forms.",
+          "provider": {
+            "@type": "Organization",
+            "name": "TenseMaster",
+            "url": "https://tensemasterapp.com"
+          },
+          "educationalLevel": "All levels (Beginner to Advanced)",
+          "inLanguage": "en"
+        }
+      ]
+    }
     </script>
-    <noscript><meta http-equiv="refresh" content="0; url=https://tensemaster1-369588566740.us-west1.run.app/" /></noscript>
   </head>
-  <body>
-    <p>Opening TenseMaster…</p>
-    <p><a href="https://tensemaster1-369588566740.us-west1.run.app/">Open TenseMaster</a></p>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
+

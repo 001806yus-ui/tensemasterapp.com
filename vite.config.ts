@@ -14,9 +14,9 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           id: '/',
-          name: 'TenseMaster - Los 12 Tiempos del Inglés',
+          name: 'TenseMaster - The 12 English Tenses',
           short_name: 'TenseMaster',
-          description: 'Aprende los 12 tiempos del inglés sin complicaciones con ejercicios interactivos, pronunciación en vivo y seguimiento personalizado.',
+          description: 'Study the 12 English tenses with interactive exercises, pronunciation practice, and progress tracking.',
           theme_color: '#4F46E5',
           background_color: '#F8FAFC',
           display: 'standalone',
@@ -44,7 +44,8 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,svg,woff,woff2}'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -83,7 +84,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {

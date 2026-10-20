@@ -1,6 +1,10 @@
 {
-  "name": "TenseMaster - Los 12 Tiempos del Inglés",
-  "description": "Aprende los 12 tiempos del inglés sin complicaciones con ejercicios interactivos, lecciones en video, pronunciación con audio nativo y seguimiento de progreso personalizado por solo $1/mes.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "TenseMaster - The 12 English Tenses",
+  "description": "Study the 12 English tenses with multilingual learning support.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

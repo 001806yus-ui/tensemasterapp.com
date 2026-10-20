@@ -1,3 +1,5 @@
+import { useLocalization } from "../i18n/LocalizationContext";
+import { getMicrophoneEnvironmentError } from '../utils/microphonePermission';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   startPronunciationRecognition,
@@ -7,8 +9,8 @@ import {
   playEnglishAudio,
   stopAudio,
   RecognitionController,
-  PronunciationEvaluation
-} from '../utils/speech';
+  PronunciationEvaluation } from
+'../utils/speech';
 import { useUser } from '../context/UserContext';
 import {
   Mic,
@@ -25,8 +27,8 @@ import {
   Headphones,
   Play,
   Pause,
-  Square
-} from 'lucide-react';
+  Square } from
+'lucide-react';
 
 interface PronunciationCoachProps {
   targetSentence: string;
@@ -40,7 +42,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
   translation,
   audioText,
   onSuccessXP
-}) => {
+}) => {const { l } = useLocalization();
   const { logDailyPractice } = useUser();
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -177,6 +179,8 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
 
   const handleStartRecording = async () => {
     setErrorMessage(null);
+    const environmentError = getMicrophoneEnvironmentError();
+    if (environmentError) { setErrorMessage(environmentError); return; }
     setInterimTranscript('');
     setFinalTranscript('');
     setEvaluation(null);
@@ -201,8 +205,8 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
-        },
+          autoGainControl: true
+        }
       });
 
       mediaStreamRef.current = stream;
@@ -237,7 +241,7 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               sum += dataArray[i];
             }
             const avg = sum / dataArray.length;
-            const normalized = Math.min(100, Math.round((avg / 128) * 100));
+            const normalized = Math.min(100, Math.round(avg / 128 * 100));
             setMicVolume(normalized);
             animFrameRef.current = requestAnimationFrame(updateVolume);
           };
@@ -306,10 +310,10 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             // Do not break audio recording if SpeechRecognition is noisy
           },
           onEnd: () => {
+
+
             // SpeechRecognition naturally finished phrase
-          },
-        });
-        controllerRef.current = controller;
+          } });controllerRef.current = controller;
       }
     } catch (err: any) {
       console.warn('getUserMedia error:', err);
@@ -399,14 +403,14 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
       } else {
         userAudioElementRef.current.src = userAudioUrl;
       }
-      userAudioElementRef.current
-        .play()
-        .then(() => {
-          setIsPlayingUserAudio(true);
-        })
-        .catch(() => {
-          setIsPlayingUserAudio(false);
-        });
+      userAudioElementRef.current.
+      play().
+      then(() => {
+        setIsPlayingUserAudio(true);
+      }).
+      catch(() => {
+        setIsPlayingUserAudio(false);
+      });
     }
   };
 
@@ -419,11 +423,11 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             <Mic className="w-4 h-4" />
           </div>
           <div>
-            <span className="text-xs font-bold text-slate-900 block">
-              Entrenador de Pronunciación en Tiempo Real
+            <span className="text-xs font-bold text-slate-900 block">{l("Entrenador de Pronunciación en Tiempo Real ")}
+
             </span>
-            <span className="text-[11px] text-slate-500">
-              Usa el micrófono de tu dispositivo para comparar tu dicción
+            <span className="text-[11px] text-slate-500">{l("Usa el micrófono de tu dispositivo para comparar tu dicción ")}
+
             </span>
           </div>
         </div>
@@ -435,35 +439,35 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             onClick={() => handleListenModel(0.94)}
             disabled={isPlayingAudio}
             className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer shadow-xs ${
-              isPlayingAudio ? 'ring-2 ring-indigo-400 animate-pulse' : ''
-            }`}
-            title="Escuchar pronunciación nativa de referencia"
-          >
+            isPlayingAudio ? 'ring-2 ring-indigo-400 animate-pulse' : ''}`
+            }
+            title={l("Escuchar pronunciación nativa de referencia")}>
+            
             <Volume2 className="w-4 h-4" />
-            <span>{isPlayingAudio ? 'Hablando...' : '🔊 Escuchar al Profesor'}</span>
+            <span>{l(isPlayingAudio ? 'Hablando...' : '🔊 Escuchar al Profesor')}</span>
           </button>
           <button
             type="button"
             onClick={() => handleListenModel(0.75)}
             disabled={isPlayingAudio}
             className="text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer shadow-2xs transition-colors"
-            title="Escuchar a velocidad lenta"
-          >
-            🐢 0.8x Lento
+            title={l("Escuchar a velocidad lenta")}>{l("🐢 0.8x Lento ")}
+
+
           </button>
         </div>
       </div>
 
       {/* Target Sentence Box */}
       <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">
-          Frase objetivo a pronunciar:
+        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block">{l("Frase objetivo a pronunciar: ")}
+
         </span>
         <div className="text-base sm:text-lg font-bold text-slate-900">
-          "{targetSentence}"
+          "{l(targetSentence)}"
         </div>
         <div className="text-xs text-slate-500 italic pb-1">
-          {translation}
+          {l(translation)}
         </div>
 
         {/* Botón azul directo para escuchar pronunciación del profesor */}
@@ -473,21 +477,21 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             onClick={() => handleListenModel(0.94)}
             disabled={isPlayingAudio}
             className={`px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs cursor-pointer transition-all active:scale-95 ${
-              isPlayingAudio ? 'ring-2 ring-indigo-400 animate-pulse' : ''
-            }`}
-            title="Escuchar pronunciación nativa de la frase"
-          >
+            isPlayingAudio ? 'ring-2 ring-indigo-400 animate-pulse' : ''}`
+            }
+            title={l("Escuchar pronunciación nativa de la frase")}>
+            
             <Volume2 className="w-4 h-4" />
-            <span>{isPlayingAudio ? '🔊 Hablando...' : '🔊 Escuchar Pronunciación (Profesor)'}</span>
+            <span>{l(isPlayingAudio ? '🔊 Hablando...' : '🔊 Escuchar Pronunciación (Profesor)')}</span>
           </button>
           <button
             type="button"
             onClick={() => handleListenModel(0.75)}
             disabled={isPlayingAudio}
             className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-            title="Escuchar a velocidad lenta"
-          >
-            <span>🐢 Lento 0.8x</span>
+            title={l("Escuchar a velocidad lenta")}>
+            
+            <span>{l("🐢 Lento 0.8x")}</span>
           </button>
         </div>
       </div>
@@ -496,113 +500,113 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
       <div className="flex flex-col items-center justify-center py-2 space-y-3">
         <div className="relative">
           {/* Animated Pulse waves when recording */}
-          {isRecording && (
-            <div className="absolute inset-0 rounded-full bg-red-500/30 animate-ping scale-125" />
-          )}
+          {l(isRecording &&
+          <div className="absolute inset-0 rounded-full bg-red-500/30 animate-ping scale-125" />)
+          }
 
           <button
             type="button"
             onClick={handleToggleRecord}
             className={`relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex flex-col items-center justify-center transition-all cursor-pointer shadow-md ${
-              isRecording
-                ? 'bg-red-600 hover:bg-red-700 text-white ring-4 ring-red-400/40 animate-pulse'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white hover:scale-105 active:scale-95'
-            }`}
-            title={isRecording ? 'Presiona para detener la grabación' : 'Presiona para grabar tu pronunciación'}
-          >
-            {isRecording ? (
-              <Square className="w-6 h-6 sm:w-7 sm:h-7 fill-white" />
-            ) : (
-              <Mic className="w-7 h-7 sm:w-8 sm:h-8" />
-            )}
+            isRecording ?
+            'bg-red-600 hover:bg-red-700 text-white ring-4 ring-red-400/40 animate-pulse' :
+            'bg-indigo-600 hover:bg-indigo-700 text-white hover:scale-105 active:scale-95'}`
+            }
+            title={l(isRecording ? 'Presiona para detener la grabación' : 'Presiona para grabar tu pronunciación')}>
+            
+            {l(isRecording ?
+            <Square className="w-6 h-6 sm:w-7 sm:h-7 fill-white" /> :
+
+            <Mic className="w-7 h-7 sm:w-8 sm:h-8" />)
+            }
           </button>
         </div>
 
         <div className="text-center space-y-1.5 w-full max-w-sm">
-          {isRecording ? (
-            <div className="space-y-2">
-              <span className="text-xs sm:text-sm font-bold text-red-600 block animate-pulse">
-                🔴 Grabando tu voz... (00:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds})
+          {l(isRecording ?
+          <div className="space-y-2">
+              <span className="text-xs sm:text-sm font-bold text-red-600 block animate-pulse">{l("🔴 Grabando tu voz... (00:")}
+              {l(recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds)})
               </span>
 
               {/* Live sound level audio visualizer */}
               <div className="flex flex-col items-center gap-1 py-1">
                 <div className="flex items-center gap-1 h-5">
-                  {[...Array(12)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-1.5 rounded-full transition-all duration-75 ${
-                        micVolume > (i + 1) * 7
-                          ? 'bg-emerald-500 h-5 shadow-xs'
-                          : 'bg-slate-200 dark:bg-slate-700 h-2'
-                      }`}
-                    />
-                  ))}
+                  {l([...Array(12)].map((_, i) =>
+                <div
+                  key={i}
+                  className={`w-1.5 rounded-full transition-all duration-75 ${
+                  micVolume > (i + 1) * 7 ?
+                  'bg-emerald-500 h-5 shadow-xs' :
+                  'bg-slate-200 dark:bg-slate-700 h-2'}`
+                  } />
+
+                ))}
                 </div>
                 <span className="text-[11px] font-semibold text-emerald-700">
-                  {micVolume > 10 ? '🎙️ Micrófono captando sonido' : 'Habla en voz alta cerca del micrófono'}
+                  {l(micVolume > 10 ? '🎙️ Micrófono captando sonido' : 'Habla en voz alta cerca del micrófono')}
                 </span>
               </div>
 
-              <span className="text-[11px] text-slate-600 block">
-                Lee la frase en inglés y pulsa el botón cuando termines:
-              </span>
+              <span className="text-[11px] text-slate-600 block">{l("Lee la frase en inglés y pulsa el botón cuando termines: ")}
+
+            </span>
               <button
-                type="button"
-                onClick={handleStopRecording}
-                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm cursor-pointer transition-all active:scale-95"
-              >
+              type="button"
+              onClick={handleStopRecording}
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-sm cursor-pointer transition-all active:scale-95">
+              
                 <Square className="w-3.5 h-3.5 fill-white" />
-                <span>⏹️ Terminar Grabación y Escucharme</span>
+                <span>{l("⏹️ Terminar Grabación y Escucharme")}</span>
               </button>
-            </div>
-          ) : (
-            <>
-              <span className="text-xs sm:text-sm font-bold block text-slate-800">
-                Toca el círculo para grabar tu voz
-              </span>
-              <span className="text-[11px] text-slate-500 block">
-                Presiona el micrófono, di la frase en inglés y luego tócalo para detenerlo y escucharte
-              </span>
+            </div> :
+
+          <>
+              <span className="text-xs sm:text-sm font-bold block text-slate-800">{l("Toca el círculo para grabar tu voz ")}
+
+            </span>
+              <span className="text-[11px] text-slate-500 block">{l("Presiona el micrófono, di la frase en inglés y luego tócalo para detenerlo y escucharte ")}
+
+            </span>
 
               {/* Botón azul visible para escuchar al profesor en computadora y celular */}
               <div className="pt-2">
                 <button
-                  type="button"
-                  onClick={() => handleListenModel(0.94)}
-                  disabled={isPlayingAudio}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
-                  title="Escuchar audio modelo nativo"
-                >
+                type="button"
+                onClick={() => handleListenModel(0.94)}
+                disabled={isPlayingAudio}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
+                title={l("Escuchar audio modelo nativo")}>
+                
                   <Volume2 className="w-4 h-4 text-indigo-600" />
-                  <span>🔊 Escuchar al Profesor antes de grabar</span>
+                  <span>{l("🔊 Escuchar al Profesor antes de grabar")}</span>
                 </button>
               </div>
-            </>
-          )}
+            </>)
+          }
         </div>
 
         {/* Real-time live transcript as user speaks */}
-        {isRecording && interimTranscript && (
-          <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-mono text-indigo-950 w-full text-center animate-fade-in">
-            <span className="text-slate-400 text-[10px] block font-sans">Escuchando en tiempo real:</span>
-            "{interimTranscript}"
-          </div>
-        )}
+        {l(isRecording && interimTranscript &&
+        <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-mono text-indigo-950 w-full text-center animate-fade-in">
+            <span className="text-slate-400 text-[10px] block font-sans">{l("Escuchando en tiempo real:")}</span>
+            "{l(interimTranscript)}"
+          </div>)
+        }
       </div>
 
       {/* RECORDED AUDIO PLAYBACK & COMPARISON CARD (TU VOZ VS NATIVO) */}
-      {(userAudioUrl || evaluation || finalTranscript) && !isRecording && (
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-teal-50 via-indigo-50 to-purple-50 border-2 border-teal-300 dark:border-teal-700 rounded-2xl space-y-3.5 shadow-sm">
+      {l((userAudioUrl || evaluation || finalTranscript) && !isRecording &&
+      <div className="p-4 sm:p-5 bg-gradient-to-r from-teal-50 via-indigo-50 to-purple-50 border-2 border-teal-300 dark:border-teal-700 rounded-2xl space-y-3.5 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Headphones className="w-5 h-5 text-teal-700" />
-              <span className="text-xs font-bold uppercase tracking-wider text-teal-950">
-                Reproducción de Audio: Tu Voz vs Modelo Nativo
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-950">{l("Reproducción de Audio: Tu Voz vs Modelo Nativo ")}
+
+            </span>
             </div>
             <span className="text-[11px] font-bold text-teal-800 bg-white px-2.5 py-0.5 rounded-full border border-teal-200 shadow-2xs">
-              {userAudioUrl ? '✓ Grabación lista' : '✓ Dicción procesada'}
+              {l(userAudioUrl ? '✓ Grabación lista' : '✓ Dicción procesada')}
             </span>
           </div>
 
@@ -612,60 +616,60 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                 <span className="flex items-center gap-1.5 text-teal-900">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse" />
-                  <span>1. Tu Voz Grabada:</span>
+                  <span>{l("1. Tu Voz Grabada:")}</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono">Micrófono</span>
+                <span className="text-[10px] text-slate-400 font-mono">{l("Micrófono")}</span>
               </div>
 
-              {userAudioUrl ? (
-                <>
+              {l(userAudioUrl ?
+            <>
                   <button
-                    type="button"
-                    onClick={handleTogglePlayUserAudio}
-                    className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm ${
-                      isPlayingUserAudio
-                        ? 'bg-teal-700 text-white animate-pulse'
-                        : 'bg-teal-600 hover:bg-teal-500 text-white hover:scale-[1.01] active:scale-[0.99]'
-                    }`}
-                  >
-                    {isPlayingUserAudio ? (
-                      <>
+                type="button"
+                onClick={handleTogglePlayUserAudio}
+                className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm ${
+                isPlayingUserAudio ?
+                'bg-teal-700 text-white animate-pulse' :
+                'bg-teal-600 hover:bg-teal-500 text-white hover:scale-[1.01] active:scale-[0.99]'}`
+                }>
+                
+                    {l(isPlayingUserAudio ?
+                <>
                         <Pause className="w-4 h-4 fill-white" />
-                        <span>⏸️ Pausar Mi Grabación</span>
-                      </>
-                    ) : (
-                      <>
+                        <span>{l("⏸️ Pausar Mi Grabación")}</span>
+                      </> :
+
+                <>
                         <Play className="w-4 h-4 fill-white" />
-                        <span>▶️ Escuchar Mi Voz Grabada</span>
-                      </>
-                    )}
+                        <span>{l("▶️ Escuchar Mi Voz Grabada")}</span>
+                      </>)
+                }
                   </button>
 
                   {/* Barra de audio integrada para control total en computadora y celular */}
                   <audio
-                    controls
-                    src={userAudioUrl}
-                    className="w-full mt-2 h-9 rounded-lg"
-                    title="Controlador de reproducción de voz"
-                  />
+                controls
+                src={userAudioUrl}
+                className="w-full mt-2 h-9 rounded-lg"
+                title={l("Controlador de reproducción de voz")} />
+              
 
-                  <span className="text-[11px] text-slate-500 text-center block pt-0.5">
-                    Haz clic en el botón verde o usa la barra para escuchar cómo se escuchó tu voz
-                  </span>
-                </>
-              ) : (
-                <div className="p-3 bg-slate-50 rounded-lg text-center space-y-1">
-                  <span className="text-xs font-semibold text-slate-700 block">
-                    Voz transcrita por el navegador:
-                  </span>
+                  <span className="text-[11px] text-slate-500 text-center block pt-0.5">{l("Haz clic en el botón verde o usa la barra para escuchar cómo se escuchó tu voz ")}
+
+              </span>
+                </> :
+
+            <div className="p-3 bg-slate-50 rounded-lg text-center space-y-1">
+                  <span className="text-xs font-semibold text-slate-700 block">{l("Voz transcrita por el navegador: ")}
+
+              </span>
                   <span className="text-xs font-mono text-indigo-700 font-bold block">
-                    "{finalTranscript || 'Texto capturado'}"
+                    "{l(finalTranscript || 'Texto capturado')}"
                   </span>
-                  <span className="text-[10px] text-slate-500 block">
-                    Para escuchar el modelo nativo correcto, usa el botón azul a la derecha 👉
-                  </span>
-                </div>
-              )}
+                  <span className="text-[10px] text-slate-500 block">{l("Para escuchar el modelo nativo correcto, usa el botón azul a la derecha 👉 ")}
+
+              </span>
+                </div>)
+            }
             </div>
 
             {/* Button 2: Native Reference Voice */}
@@ -673,211 +677,211 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
               <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                 <span className="flex items-center gap-1.5 text-indigo-900">
                   <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                  <span>2. Profesor Nativo:</span>
+                  <span>{l("2. Profesor Nativo:")}</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono">Referencia</span>
+                <span className="text-[10px] text-slate-400 font-mono">{l("Referencia")}</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
-                  type="button"
-                  onClick={() => handleListenModel(0.94)}
-                  disabled={isPlayingAudio}
-                  className={`flex-1 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                    isPlayingAudio
-                      ? 'bg-indigo-700 text-white animate-pulse'
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white hover:scale-[1.01] active:scale-[0.99]'
-                  }`}
-                  title="Escuchar audio modelo nativo"
-                >
+                type="button"
+                onClick={() => handleListenModel(0.94)}
+                disabled={isPlayingAudio}
+                className={`flex-1 py-3 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                isPlayingAudio ?
+                'bg-indigo-700 text-white animate-pulse' :
+                'bg-indigo-600 hover:bg-indigo-500 text-white hover:scale-[1.01] active:scale-[0.99]'}`
+                }
+                title={l("Escuchar audio modelo nativo")}>
+                
                   <Volume2 className="w-4 h-4" />
-                  <span>{isPlayingAudio ? 'Hablando...' : '🔊 Escuchar Nativo'}</span>
+                  <span>{l(isPlayingAudio ? 'Hablando...' : '🔊 Escuchar Nativo')}</span>
                 </button>
 
                 <button
-                  type="button"
-                  onClick={() => handleListenModel(0.75)}
-                  disabled={isPlayingAudio}
-                  className="py-3 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                  title="Escuchar a velocidad lenta para notar cada fonema"
-                >
-                  <span>🐢 Lento</span>
+                type="button"
+                onClick={() => handleListenModel(0.75)}
+                disabled={isPlayingAudio}
+                className="py-3 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                title={l("Escuchar a velocidad lenta para notar cada fonema")}>
+                
+                  <span>{l("🐢 Lento")}</span>
                 </button>
               </div>
-              <span className="text-[11px] text-slate-500 text-center block pt-2">
-                Haz clic en el botón azul para comparar tu pronunciación con el nativo
-              </span>
+              <span className="text-[11px] text-slate-500 text-center block pt-2">{l("Haz clic en el botón azul para comparar tu pronunciación con el nativo ")}
+
+            </span>
             </div>
           </div>
-        </div>
-      )}
+        </div>)
+      }
 
       {/* Self-evaluation card when voice was recorded but automatic speech recognition didn't grade */}
-      {userAudioUrl && !evaluation && !isRecording && (
-        <div className="bg-white border-2 border-emerald-200 rounded-xl p-4 sm:p-5 space-y-3 shadow-xs">
+      {l(userAudioUrl && !evaluation && !isRecording &&
+      <div className="bg-white border-2 border-emerald-200 rounded-xl p-4 sm:p-5 space-y-3 shadow-xs">
           <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <span className="font-bold text-sm text-slate-900">
-                ¡Tu voz se grabó perfectamente!
-              </span>
+              <span className="font-bold text-sm text-slate-900">{l("¡Tu voz se grabó perfectamente! ")}
+
+            </span>
             </div>
-            {hasAwardedXP && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold font-mono">
-                <Sparkles className="w-3 h-3 text-emerald-600" />
-                +15 XP sumados
-              </span>
-            )}
+            {l(hasAwardedXP &&
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold font-mono">
+                <Sparkles className="w-3 h-3 text-emerald-600" />{l("+15 XP sumados ")}
+
+          </span>)
+          }
           </div>
 
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Puedes escuchar tu grabación arriba usando el botón verde <strong>"▶️ Escuchar Mi Voz Grabada"</strong> y compararla con el botón azul <strong>"🔊 Escuchar Nativo"</strong>.
+          <p className="text-xs text-slate-600 leading-relaxed">{l("Puedes escuchar tu grabación arriba usando el botón verde ")}
+          <strong>{l("\"▶️ Escuchar Mi Voz Grabada\"")}</strong>{l(" y compararla con el botón azul ")}<strong>{l("\"🔊 Escuchar Nativo\"")}</strong>.
           </p>
 
           <div className="pt-1">
-            <span className="text-xs font-bold text-slate-800 block mb-2">
-              ¿Cómo sentiste tu pronunciación al compararte con el nativo?
-            </span>
+            <span className="text-xs font-bold text-slate-800 block mb-2">{l("¿Cómo sentiste tu pronunciación al compararte con el nativo? ")}
+
+          </span>
             <div className="flex flex-wrap gap-2">
               <button
-                type="button"
-                onClick={() => handleSelfGrade('excelente')}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
-                  selfGraded === 'excelente'
-                    ? 'bg-emerald-600 text-white ring-2 ring-emerald-400'
-                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                }`}
-              >
-                <span>🌟 Excelente (+15 XP)</span>
+              type="button"
+              onClick={() => handleSelfGrade('excelente')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+              selfGraded === 'excelente' ?
+              'bg-emerald-600 text-white ring-2 ring-emerald-400' :
+              'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'}`
+              }>
+              
+                <span>{l("🌟 Excelente (+15 XP)")}</span>
               </button>
 
               <button
-                type="button"
-                onClick={() => handleSelfGrade('buena')}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
-                  selfGraded === 'buena'
-                    ? 'bg-teal-600 text-white ring-2 ring-teal-400'
-                    : 'bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100'
-                }`}
-              >
-                <span>👍 Bastante parecida (+15 XP)</span>
+              type="button"
+              onClick={() => handleSelfGrade('buena')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+              selfGraded === 'buena' ?
+              'bg-teal-600 text-white ring-2 ring-teal-400' :
+              'bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100'}`
+              }>
+              
+                <span>{l("👍 Bastante parecida (+15 XP)")}</span>
               </button>
 
               <button
-                type="button"
-                onClick={handleStartRecording}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer border border-slate-200 flex items-center gap-1.5"
-              >
+              type="button"
+              onClick={handleStartRecording}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer border border-slate-200 flex items-center gap-1.5">
+              
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Grabar de nuevo</span>
+                <span>{l("Grabar de nuevo")}</span>
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>)
+      }
 
       {/* Pronunciation Feedback & Evaluation Results */}
-      {evaluation && (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
+      {l(evaluation &&
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 space-y-4">
           {/* Header Score Gauge */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <div
-                className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-mono font-bold text-lg shadow-2xs border ${
-                  evaluation.accuracyScore >= 80
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : evaluation.accuracyScore >= 60
-                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                    : 'bg-red-50 text-red-800 border-red-200'
-                }`}
-              >
-                <span>{evaluation.accuracyScore}%</span>
-                <span className="text-[9px] font-sans font-normal uppercase tracking-wider">Acierto</span>
+              className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-mono font-bold text-lg shadow-2xs border ${
+              evaluation.accuracyScore >= 80 ?
+              'bg-emerald-50 text-emerald-800 border-emerald-200' :
+              evaluation.accuracyScore >= 60 ?
+              'bg-amber-50 text-amber-800 border-amber-200' :
+              'bg-red-50 text-red-800 border-red-200'}`
+              }>
+              
+                <span>{l(evaluation.accuracyScore)}%</span>
+                <span className="text-[9px] font-sans font-normal uppercase tracking-wider">{l("Acierto")}</span>
               </div>
 
               <div>
                 <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900">
-                  {evaluation.isPassing ? (
-                    <>
+                  {l(evaluation.isPassing ?
+                <>
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>¡Excelente dicción!</span>
-                    </>
-                  ) : (
-                    <>
+                      <span>{l("¡Excelente dicción!")}</span>
+                    </> :
+
+                <>
                       <AlertCircle className="w-4 h-4 text-amber-600" />
-                      <span>Sigue practicando</span>
-                    </>
-                  )}
+                      <span>{l("Sigue practicando")}</span>
+                    </>)
+                }
                 </div>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  {evaluation.feedbackMessage}
+                  {l(evaluation.feedbackMessage)}
                 </p>
               </div>
             </div>
 
-            {evaluation.isPassing && hasAwardedXP && (
-              <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-800 shadow-2xs">
+            {l(evaluation.isPassing && hasAwardedXP &&
+          <div className="flex items-center gap-1 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-xs font-bold text-amber-800 shadow-2xs">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>+15 XP ganados</span>
-              </div>
-            )}
+                <span>{l("+15 XP ganados")}</span>
+              </div>)
+          }
           </div>
 
           {/* Word-by-word accuracy visual breakdown */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Desglose palabra por palabra:</span>
+              <span className="font-bold text-slate-700">{l("Desglose palabra por palabra:")}</span>
               <div className="flex items-center gap-3 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Correcto
-                </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />{l(" Correcto ")}
+              </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-amber-500" /> Impreciso
-                </span>
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />{l(" Impreciso ")}
+              </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-red-400" /> Omitido/Mejorar
-                </span>
+                  <span className="w-2 h-2 rounded-full bg-red-400" />{l(" Omitido/Mejorar ")}
+              </span>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-              {evaluation.words.map((item, idx) => {
-                const styles =
-                  item.status === 'correct'
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                    : item.status === 'imperfect'
-                    ? 'bg-amber-100 text-amber-900 border-amber-300'
-                    : 'bg-red-100 text-red-900 border-red-300';
+              {l(evaluation.words.map((item, idx) => {
+              const styles =
+              item.status === 'correct' ?
+              'bg-emerald-100 text-emerald-900 border-emerald-300' :
+              item.status === 'imperfect' ?
+              'bg-amber-100 text-amber-900 border-amber-300' :
+              'bg-red-100 text-red-900 border-red-300';
 
-                return (
-                  <span
-                    key={idx}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium border flex items-center gap-1 ${styles}`}
-                    title={
-                      item.status === 'correct'
-                        ? 'Pronunciación correcta'
-                        : item.status === 'imperfect'
-                        ? `Detectado como: "${item.spokenWord || ''}"`
-                        : 'No se detectó con claridad'
-                    }
-                  >
-                    <span>{item.targetWord}</span>
+              return (
+                <span
+                  key={idx}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium border flex items-center gap-1 ${styles}`}
+                  title={l(
+                    item.status === 'correct' ?
+                    'Pronunciación correcta' :
+                    item.status === 'imperfect' ?
+                    `Detectado como: "${item.spokenWord || ''}"` :
+                    'No se detectó con claridad')}>
+
+                  
+                    <span>{l(item.targetWord)}</span>
                     <span className="text-[10px] opacity-75">
-                      {item.status === 'correct' && '✓'}
-                      {item.status === 'imperfect' && '~'}
-                      {item.status === 'missing' && '✗'}
+                      {l(item.status === 'correct' && '✓')}
+                      {l(item.status === 'imperfect' && '~')}
+                      {l(item.status === 'missing' && '✗')}
                     </span>
-                  </span>
-                );
-              })}
+                  </span>);
+
+            }))}
             </div>
           </div>
 
           {/* Comparison summary */}
           <div className="text-xs text-slate-500 space-y-1 font-mono pt-1">
             <div>
-              <span className="text-slate-400 font-sans">El micrófono reconoció: </span>
-              <span className="text-slate-800 italic">"{finalTranscript}"</span>
+              <span className="text-slate-400 font-sans">{l("El micrófono reconoció: ")}</span>
+              <span className="text-slate-800 italic">"{l(finalTranscript)}"</span>
             </div>
           </div>
 
@@ -885,49 +889,49 @@ export const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
           <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
             <div className="flex flex-wrap items-center gap-2">
               <button
-                type="button"
-                onClick={() => handleListenModel(0.94)}
-                disabled={isPlayingAudio}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-xs"
-                title="Escuchar pronunciación nativa de la frase"
-              >
+              type="button"
+              onClick={() => handleListenModel(0.94)}
+              disabled={isPlayingAudio}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-xs"
+              title={l("Escuchar pronunciación nativa de la frase")}>
+              
                 <Volume2 className="w-3.5 h-3.5" />
-                <span>{isPlayingAudio ? 'Hablando...' : '🔊 Escuchar al Profesor'}</span>
+                <span>{l(isPlayingAudio ? 'Hablando...' : '🔊 Escuchar al Profesor')}</span>
               </button>
 
-              {userAudioUrl && (
-                <button
-                  type="button"
-                  onClick={handleTogglePlayUserAudio}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-xs"
-                  title="Escuchar cómo sonó tu voz grabada"
-                >
-                  {isPlayingUserAudio ? (
-                    <>
+              {l(userAudioUrl &&
+            <button
+              type="button"
+              onClick={handleTogglePlayUserAudio}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer shadow-xs"
+              title={l("Escuchar cómo sonó tu voz grabada")}>
+              
+                  {l(isPlayingUserAudio ?
+              <>
                       <Pause className="w-3.5 h-3.5" />
-                      <span>Pausar mi voz</span>
-                    </>
-                  ) : (
-                    <>
+                      <span>{l("Pausar mi voz")}</span>
+                    </> :
+
+              <>
                       <Play className="w-3.5 h-3.5" />
-                      <span>▶️ Escuchar mi voz</span>
-                    </>
-                  )}
-                </button>
-              )}
+                      <span>{l("▶️ Escuchar mi voz")}</span>
+                    </>)
+              }
+                </button>)
+            }
             </div>
 
             <button
-              type="button"
-              onClick={handleStartRecording}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-slate-200"
-            >
+            type="button"
+            onClick={handleStartRecording}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-slate-200">
+            
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Intentar de nuevo</span>
+              <span>{l("Intentar de nuevo")}</span>
             </button>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </div>)
+      }
+    </div>);
+
 };

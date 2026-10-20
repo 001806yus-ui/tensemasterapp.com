@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { readTutorResponse } from '../src/utils/tutorResponse';
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {status, headers: {'content-type': 'application/json'}});
+await assert.rejects(readTutorResponse(new Response('<!doctype html><html>Sign in</html>', {headers: {'content-type': 'text/html'}})), /did not reach the tutor service/);
+await assert.rejects(readTutorResponse(json({error:'quota'}, 429)), /usage limit/);
+await assert.rejects(readTutorResponse(json({error:'unavailable'}, 502)), /temporarily unavailable/);
+await assert.rejects(readTutorResponse(json({replyEnglish: 'Hello'})), /incomplete reply/);
+const reply = {replyEnglish:'What do you enjoy doing?',hasErrors:false,feedbackSummary:'Correct sentence.',detectedTenses:['Present Simple'],suggestedReplies:['I enjoy reading.']};
+assert.deepEqual(await readTutorResponse(json(reply)), reply);
+console.log('Tutor responses: HTML, quota, server failure, malformed reply and success passed.');

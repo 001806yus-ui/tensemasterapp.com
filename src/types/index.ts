@@ -287,6 +287,8 @@ export interface OwnerBusinessConfig {
   supportEmail: string;
   currencyCode: 'USD' | 'MXN' | 'COP' | 'EUR' | 'BRL';
   priceMonthly: number;
+  originalPrice?: number;
+  discountPercent?: number;
   promoCodeActive: string;
   allTensesFreeMode?: boolean; // When true, all 12 tenses are 100% unlocked for everyone with no paywall
 }

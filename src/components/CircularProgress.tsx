@@ -1,3 +1,4 @@
+import { useLocalization } from "../i18n/LocalizationContext";
 import React, { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 
@@ -17,7 +18,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   status,
   showLabel = true,
   className = ''
-}) => {
+}) => {const { l } = useLocalization();
   const [animatedPercent, setAnimatedPercent] = useState(0);
 
   // Smooth animation effect on mount and value updates
@@ -30,7 +31,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
 
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (animatedPercent / 100) * circumference;
+  const strokeDashoffset = circumference - animatedPercent / 100 * circumference;
 
   const isCompleted = animatedPercent >= 100 || status === 'mastered' || status === 'completed';
 
@@ -54,26 +55,26 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     <div
       className={`relative inline-flex items-center justify-center shrink-0 ${className}`}
       style={{ width: size, height: size }}
-      title={`Progreso: ${Math.round(percentage)}% completado`}
+      title={l("Progreso: {{0}}% completado", [Math.round(percentage)])}
       role="progressbar"
       aria-valuenow={Math.round(percentage)}
       aria-valuemin={0}
-      aria-valuemax={100}
-    >
+      aria-valuemax={100}>
+      
       <svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="transform -rotate-90 origin-center"
-      >
+        className="transform -rotate-90 origin-center">
+        
         {/* Background track circle */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           strokeWidth={strokeWidth}
-          className={`${getTrackColor()} fill-none transition-colors duration-300`}
-        />
+          className={`${getTrackColor()} fill-none transition-colors duration-300`} />
+        
 
         {/* Animated fill circle */}
         <circle
@@ -85,22 +86,22 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          className="fill-none transition-[stroke-dashoffset,stroke] duration-1000 ease-out"
-        />
+          className="fill-none transition-[stroke-dashoffset,stroke] duration-1000 ease-out" />
+        
       </svg>
 
       {/* Center percentage label or checkmark */}
-      {showLabel && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {isCompleted ? (
-            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[3] animate-in zoom-in-50 duration-300" />
-          ) : (
-            <span className="text-[10px] font-bold font-mono tracking-tight text-slate-700 dark:text-slate-200">
-              {Math.round(animatedPercent)}%
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
+      {l(showLabel &&
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {l(isCompleted ?
+        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 stroke-[3] animate-in zoom-in-50 duration-300" /> :
+
+        <span className="text-[10px] font-bold font-mono tracking-tight text-slate-700 dark:text-slate-200">
+              {l(Math.round(animatedPercent))}%
+            </span>)
+        }
+        </div>)
+      }
+    </div>);
+
 };

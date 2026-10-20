@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import handler from '../api/transcribe';
+const audio = Buffer.alloc(100, 1).toString('base64');
+const call = async (method: string, body?: any) => {
+  const output: any = { status: 200 };
+  await handler({ method, body }, { setHeader() {}, status(n: number) { output.status = n; return this; }, json(data: any) { output.body = data; return this; } });
+  return output;
+};
+process.env.GEMINI_API_KEY = 'test-only';
+// Reproduce AI Studio imports where optional flags are absent or blank.
+delete process.env.DICTATION_ENABLED;
+assert.equal((await call('GET')).body.reason, 'ready');
+process.env.DICTATION_ENABLED = '  ';
+assert.equal((await call('GET')).body.reason, 'ready');
+delete process.env.GEMINI_API_KEY;
+assert.equal((await call('GET')).body.reason, 'missing_key');
+assert.equal((await call('POST', { audio, mimeType: 'audio/webm' })).status, 503);
+process.env.GEMINI_API_KEY = 'test-only';
+process.env.DICTATION_ENABLED = 'not-a-boolean';
+assert.equal((await call('GET')).body.reason, 'dictation_disabled');
+process.env.DICTATION_ENABLED = 'false';
+assert.equal((await call('GET')).body.enabled, false);
+assert.equal((await call('GET')).body.reason, 'dictation_disabled');
+assert.equal((await call('POST', { audio, mimeType: 'audio/webm' })).status, 503);
+process.env.DICTATION_ENABLED = ' true ';
+delete process.env.GEMINI_API_KEY;
+assert.equal((await call('GET')).body.reason, 'missing_key');
+process.env.GEMINI_API_KEY = 'test-only';
+assert.equal((await call('GET')).body.reason, 'ready');
+process.env.DICTATION_MAX_REQUESTS = '2';
+assert.equal((await call('POST', { audio, mimeType: 'text/html' })).status, 400);
+assert.equal((await call('POST', { audio: '!', mimeType: 'audio/webm' })).status, 400);
+delete process.env.DICTATION_ENABLED;
+let calls = 0;
+globalThis.fetch = async (_url, init) => {
+  calls++;
+  const body = JSON.parse(String(init?.body));
+  assert.equal(body.contents[0].parts[1].inlineData.data, audio);
+  return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ transcript: 'I work from home on Fridays.' }) }] } }] }), { status: 200 });
+};
+assert.equal((await call('POST', { audio, mimeType: 'audio/webm' })).body.transcript, 'I work from home on Fridays.');
+globalThis.fetch = async () => { calls++; return new Response('{}', { status: 429 }); };
+assert.equal((await call('POST', { audio, mimeType: 'audio/webm' })).status, 429);
+assert.equal((await call('POST', { audio, mimeType: 'audio/webm' })).status, 429);
+assert.equal(calls, 2);
+console.log('PASS: Transcription configuration, audio validation, provider response and request limits (mock provider only).');
