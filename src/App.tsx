@@ -36,7 +36,7 @@ import { useUser } from './context/UserContext';
 import { ALL_12_TENSES } from './data/tensesData';
 import { TENSE_LOCALIZED_NAMES, SUPPORTED_LANGUAGES } from './i18n/translations';
 import { TenseData, TenseGroup, TenseAspect } from './types';
-import { Sparkles, CheckCircle2, Lock, ShieldCheck, Heart, BookOpen, Trophy, Target, FileDown, Sun, Moon, Swords, Search, MessageSquare, BookMarked, HelpCircle, Bot } from 'lucide-react';
+import { Sparkles, CheckCircle2, Lock, ShieldCheck, Heart, BookOpen, Trophy, Target, FileDown, Sun, Moon, Swords, Search, MessageSquare, BookMarked, HelpCircle, Bot, X } from 'lucide-react';
 
 function MainApp() {const { l } = useLocalization();
   const {
@@ -51,7 +51,9 @@ function MainApp() {const { l } = useLocalization();
     diagnosticResult,
     t,
     nativeLanguage,
-    ownerConfig
+    ownerConfig,
+    justSubscribedNotice,
+    clearSubscribedNotice
   } = useUser();
   const [currentTab, setCurrentTab] = useState<NavigationTab>('roadmap');
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,6 +113,30 @@ function MainApp() {const { l } = useLocalization();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 transition-colors w-full overflow-x-hidden">
+      {justSubscribedNotice && (
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-3 shadow-md sticky top-0 z-50">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl shrink-0">🎉</span>
+              <div>
+                <p className="font-bold text-sm sm:text-base leading-tight">
+                  {l("Welcome to TenseMaster All-Access!")}
+                </p>
+                <p className="text-xs text-emerald-100 mt-0.5">
+                  {l("Your subscription is active. All 12 tenses, exercises, native audio, and 24/7 AI tutor are fully unlocked.")}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={clearSubscribedNotice}
+              className="p-1.5 hover:bg-white/20 rounded-lg text-white cursor-pointer transition-colors shrink-0"
+              aria-label={l("Close")}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
       {/* 
           Focus Mode Condition:
           When a user enters a detailed lesson (activeTenseModal !== null),

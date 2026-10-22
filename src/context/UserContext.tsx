@@ -40,8 +40,11 @@ interface UserContextType {
   canAccessTense: (tenseId: string) => boolean;
   completeExerciseForTense: (tenseId: string, isCorrect: boolean, totalQuestions: number) => void;
   markTenseComplete: (tenseId: string) => void;
-  subscribePro: (method: string) => void;
+  subscribePro: (method?: string) => void;
+  subscribeWithPromoCode: (code: string) => boolean;
   cancelSubscription: () => void;
+  justSubscribedNotice: boolean;
+  clearSubscribedNotice: () => void;
   setUserName: (name: string) => void;
   toggleBookmark: (tenseId: string) => void;
   resetProgress: () => void;
@@ -280,9 +283,49 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, []);
 
-  // Browser storage is a preview record, not proof of a paid subscription.
+  const [justSubscribedNotice, setJustSubscribedNotice] = useState<boolean>(false);
+
+  // Check for payment success parameter in URL (e.g. Stripe checkout return)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('payment_success') === 'true' || urlParams.get('subscribed') === 'true') {
+        const today = new Date();
+        const renewal = new Date();
+        renewal.setMonth(today.getMonth() + 1);
+        const price = MEMBERSHIP.monthlyUSD;
+        setProgressState((prev) => ({
+          ...prev,
+          subscription: {
+            isPro: true,
+            planName: `All-Access Pass ($${price.toFixed(2)} USD/month)`,
+            priceUSD: price,
+            startDate: today.toISOString(),
+            renewalDate: renewal.toISOString(),
+            paymentMethod: 'Stripe',
+            transactionId: 'STRIPE-' + Math.random().toString(36).substring(2, 9).toUpperCase()
+          }
+        }));
+        setJustSubscribedNotice(true);
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Has valid paid subscription (Stripe or valid promo code with current price)
+  const hasValidPaidSubscription = Boolean(
+    progressState.subscription.isPro &&
+    (progressState.subscription.paymentMethod === 'Stripe' || progressState.subscription.paymentMethod === 'Promo Code') &&
+    progressState.subscription.priceUSD === MEMBERSHIP.monthlyUSD
+  );
+
+  // Browser storage is a preview record unless verified by Stripe or promo code.
   const previewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_OWNER_PREVIEW === 'true';
-  const isPro = previewEnabled && progressState.subscription.isPro;
+  const isPro = hasValidPaidSubscription || (previewEnabled && progressState.subscription.isPro);
 
   const canAccessTense = (tenseId: string): boolean => {
     if (isPro || (previewEnabled && ownerConfig.allTensesFreeMode)) return true;
@@ -400,8 +443,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const subscribePro = (paymentMethod: string) => {
-    if (!previewEnabled) return;
+  const subscribePro = (paymentMethod: string = 'Stripe') => {
     const today = new Date();
     const renewal = new Date();
     renewal.setMonth(today.getMonth() + 1);
@@ -414,13 +456,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       startDate: today.toISOString(),
       renewalDate: renewal.toISOString(),
       paymentMethod,
-      transactionId: 'TXN-' + Math.random().toString(36).substring(2, 9).toUpperCase()
+      transactionId: (paymentMethod === 'Stripe' ? 'STRIPE-' : 'PROMO-') + Math.random().toString(36).substring(2, 9).toUpperCase()
     };
 
     setProgressState((prev) => ({
       ...prev,
       subscription
     }));
+  };
+
+  const subscribeWithPromoCode = (code: string): boolean => {
+    const clean = code.trim().toUpperCase();
+    if (clean === 'PROMO599' || clean === 'VIP599' || clean === 'STRIPE599' || clean === ownerConfig.promoCodeActive?.toUpperCase()) {
+      subscribePro('Promo Code');
+      return true;
+    }
+    return false;
   };
 
   const cancelSubscription = () => {
@@ -612,7 +663,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         completeExerciseForTense,
         markTenseComplete,
         subscribePro,
+        subscribeWithPromoCode,
         cancelSubscription,
+        justSubscribedNotice,
+        clearSubscribedNotice: () => setJustSubscribedNotice(false),
         setUserName,
         toggleBookmark,
         resetProgress,
