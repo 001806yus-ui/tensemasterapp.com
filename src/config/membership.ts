@@ -1,7 +1,7 @@
 // One published price, independent of stale browser or preview subscription data.
 export const MEMBERSHIP = Object.freeze({ monthlyUSD: 5.99, currency: 'USD' });
 
-export const ACTIVE_STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_bJebJ27671VQ9w01jycwg00';
+export const ACTIVE_STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/4gM28sdqRcFP8k16Oq2go00';
 
 export function getCheckoutURL(customLink?: string): string | null {
   // If in automated unit test environment with example.test, preserve isolation
