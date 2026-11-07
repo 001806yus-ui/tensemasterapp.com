@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import { SUPPORTED_LANGUAGES } from '../src/i18n/translations';
+import { SUPPORTED_LANGUAGES } from '../src/i18n/translations.js';
 let active = 0;
 let requests = 0;
 

@@ -1,4 +1,4 @@
-import { TenseData } from '../types';
+import { TenseData } from '../types/index.js';
 
 export const ALL_12_TENSES: TenseData[] = [
   // 1. PRESENT SIMPLE

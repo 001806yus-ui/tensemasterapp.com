@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { ALL_12_TENSES } from '../src/data/tensesData';
-import { CLOUD_VOICES, VOICE_SAMPLES, normalizeSpeechText } from '../src/config/voices';
+import { ALL_12_TENSES } from '../src/data/tensesData.js';
+import { CLOUD_VOICES, VOICE_SAMPLES, normalizeSpeechText } from '../src/config/voices.js';
 
 // Until real accounts and durable quotas exist, generate only shipped lesson
 // examples and voice samples. Never expose arbitrary paid speech generation.
