@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const limit = Number(process.env.CHAT_MAX_REQUESTS || 100);
-    if (!Number.isInteger(limit) || limit < 0 || limit > 1000 || requests >= limit || active >= 2) {
+    if (!Number.isInteger(limit) || limit < 0 || limit > 1000 || requests >= limit || active >= 20) {
       return res.status(429).json({ error: 'The tutor preview limit has been reached. Please try later.' });
     }
     requests++; active++; acquired = true;
