@@ -14,6 +14,8 @@ import { MEMBERSHIP } from '../config/membership';
 import { DEFAULT_REMINDER_SETTINGS, sendPushNotification } from '../utils/notifications';
 import { generateProgressPDF } from '../utils/pdfExport';
 
+export type AccessCheckResult = 'active' | 'not-found' | 'invalid-email' | 'too-many-attempts' | 'unavailable';
+
 interface UserContextType {
   progressState: UserProgressState;
   isPro: boolean;
@@ -43,6 +45,10 @@ interface UserContextType {
   subscribePro: (method?: string) => void;
   subscribeWithPromoCode: (code: string) => boolean;
   cancelSubscription: () => void;
+  verifiedEmail: string | null;
+  verifyAccessByEmail: (email: string) => Promise<AccessCheckResult>;
+  pendingEmailVerification: boolean;
+  dismissPendingEmailVerification: () => void;
   justSubscribedNotice: boolean;
   clearSubscribedNotice: () => void;
   setUserName: (name: string) => void;
@@ -66,6 +72,7 @@ const LANG_STORAGE_KEY = 'tensemaster_interface_language_v3';
 const REMINDERS_STORAGE_KEY = 'tensemaster_push_reminders';
 const DARK_STORAGE_KEY = 'tensemaster_dark_mode';
 const OWNER_STORAGE_KEY = 'tensemaster_owner_config';
+const VERIFIED_EMAIL_KEY = 'tensemaster_verified_email';
 
 const DEFAULT_OWNER_CONFIG: OwnerBusinessConfig = {
   stripePaymentLink: '',
@@ -285,29 +292,25 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [justSubscribedNotice, setJustSubscribedNotice] = useState<boolean>(false);
 
-  // Check for payment success parameter in URL (e.g. Stripe checkout return)
+  // The email Stripe confirmed as having an active subscription (set by verifyAccessByEmail).
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(VERIFIED_EMAIL_KEY);
+    } catch {
+      return null;
+    }
+  });
+  const [pendingEmailVerification, setPendingEmailVerification] = useState<boolean>(false);
+
+  // Returning from Stripe checkout does not unlock anything by itself: the URL
+  // parameter is not proof of payment. It only asks the learner to confirm the
+  // email they paid with, so the server can check the subscription in Stripe.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment_success') === 'true' || urlParams.get('subscribed') === 'true') {
-        const today = new Date();
-        const renewal = new Date();
-        renewal.setMonth(today.getMonth() + 1);
-        const price = MEMBERSHIP.monthlyUSD;
-        setProgressState((prev) => ({
-          ...prev,
-          subscription: {
-            isPro: true,
-            planName: `All-Access Pass ($${price.toFixed(2)} USD/month)`,
-            priceUSD: price,
-            startDate: today.toISOString(),
-            renewalDate: renewal.toISOString(),
-            paymentMethod: 'Stripe',
-            transactionId: 'STRIPE-' + Math.random().toString(36).substring(2, 9).toUpperCase()
-          }
-        }));
-        setJustSubscribedNotice(true);
+        setPendingEmailVerification(true);
         const cleanUrl = window.location.pathname + window.location.hash;
         window.history.replaceState({}, document.title, cleanUrl);
       }
@@ -316,10 +319,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Has valid paid subscription (Stripe or valid promo code with current price)
+  // Has valid paid subscription (Stripe verified by email on the server, or valid promo code with current price)
   const hasValidPaidSubscription = Boolean(
     progressState.subscription.isPro &&
-    (progressState.subscription.paymentMethod === 'Stripe' || progressState.subscription.paymentMethod === 'Promo Code') &&
+    ((progressState.subscription.paymentMethod === 'Stripe' && verifiedEmail) || progressState.subscription.paymentMethod === 'Promo Code') &&
     progressState.subscription.priceUSD === MEMBERSHIP.monthlyUSD
   );
 
@@ -488,6 +491,66 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }));
   };
+
+  const askStripeAboutEmail = async (email: string): Promise<AccessCheckResult> => {
+    try {
+      const response = await fetch('/api/check-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+        signal: AbortSignal.timeout(30000)
+      });
+      if (response.status === 400) return 'invalid-email';
+      if (response.status === 429) return 'too-many-attempts';
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return 'unavailable';
+      const data = await response.json();
+      if (typeof data?.active !== 'boolean') return 'unavailable';
+      return data.active ? 'active' : 'not-found';
+    } catch {
+      return 'unavailable';
+    }
+  };
+
+  // Unlocks the membership only after the server finds an active Stripe subscription for this email.
+  const verifyAccessByEmail = async (email: string): Promise<AccessCheckResult> => {
+    const clean = email.trim().toLowerCase();
+    if (!clean || clean.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return 'invalid-email';
+    const result = await askStripeAboutEmail(clean);
+    if (result !== 'active') return result;
+    subscribePro('Stripe');
+    setVerifiedEmail(clean);
+    try {
+      localStorage.setItem(VERIFIED_EMAIL_KEY, clean);
+    } catch {
+      // ignore
+    }
+    setPendingEmailVerification(false);
+    setJustSubscribedNotice(true);
+    return 'active';
+  };
+
+  const dismissPendingEmailVerification = () => setPendingEmailVerification(false);
+
+  // When the app opens, confirm that a saved Stripe membership is still active.
+  // Access is removed only when Stripe clearly answers that it is not (a canceled
+  // or unpaid subscription), never because of a connection problem.
+  useEffect(() => {
+    if (!verifiedEmail || progressState.subscription.paymentMethod !== 'Stripe' || !progressState.subscription.isPro) return;
+    let ignore = false;
+    void askStripeAboutEmail(verifiedEmail).then((result) => {
+      if (ignore || result !== 'not-found') return;
+      cancelSubscription();
+      setVerifiedEmail(null);
+      try {
+        localStorage.removeItem(VERIFIED_EMAIL_KEY);
+      } catch {
+        // ignore
+      }
+    });
+    return () => { ignore = true; };
+    // Runs once per visit; later changes come from verifyAccessByEmail itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isOwnerAuthenticated, setIsOwnerAuthenticated] = useState<boolean>(() => {
     try {
@@ -665,6 +728,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscribePro,
         subscribeWithPromoCode,
         cancelSubscription,
+        verifiedEmail,
+        verifyAccessByEmail,
+        pendingEmailVerification,
+        dismissPendingEmailVerification,
         justSubscribedNotice,
         clearSubscribedNotice: () => setJustSubscribedNotice(false),
         setUserName,
