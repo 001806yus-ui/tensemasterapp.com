@@ -2,6 +2,9 @@
 // reports whether it has an active subscription. The browser never decides
 // this on its own (a URL parameter or saved browser data is not proof of payment).
 // Uses Stripe's REST API directly, so no extra package is needed.
+//
+// FREE_ACCESS_EMAILS (optional, server setting): emails the owner invites for
+// free, separated by commas. They are never sent to the browser or stored in code.
 const STRIPE_API = 'https://api.stripe.com/v1';
 const EMAIL = /^[^\s@"'\\<>]+@[^\s@"'\\<>]+\.[^\s@"'\\<>]+$/;
 const ACTIVE = new Set(['active', 'trialing']);
@@ -33,6 +36,9 @@ export default async function handler(req: any, res: any) {
   if (!typed || typed.length > 254 || !EMAIL.test(typed)) {
     return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
+
+  const invited = (process.env.FREE_ACCESS_EMAILS || '').split(/[\s,;]+/).map((email) => email.toLowerCase()).filter(Boolean);
+  if (invited.includes(typed.toLowerCase())) return res.status(200).json({ active: true });
 
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
   if (!secretKey) {
