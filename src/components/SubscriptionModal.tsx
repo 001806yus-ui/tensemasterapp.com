@@ -1,6 +1,6 @@
 import { useLocalization } from "../i18n/LocalizationContext";
 import React, { useState } from 'react';
-import { X, CheckCircle2, ExternalLink, CreditCard, ShieldCheck, Sparkles, KeyRound, MailCheck } from 'lucide-react';
+import { X, CheckCircle2, ExternalLink, CreditCard, ShieldCheck, Sparkles, MailCheck } from 'lucide-react';
 import { MEMBERSHIP, getCheckoutURL } from '../config/membership';
 import { useUser, AccessCheckResult } from '../context/UserContext';
 
@@ -17,12 +17,8 @@ interface SubscriptionModalProps {
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose }) => {
   const { l } = useLocalization();
-  const { isPro, subscribeWithPromoCode, verifyAccessByEmail, pendingEmailVerification, dismissPendingEmailVerification } = useUser();
+  const { isPro, verifyAccessByEmail, pendingEmailVerification, dismissPendingEmailVerification } = useUser();
   const checkoutURL = getCheckoutURL();
-  const [promoInput, setPromoInput] = useState('');
-  const [promoError, setPromoError] = useState<string | null>(null);
-  const [promoSuccess, setPromoSuccess] = useState(false);
-  const [showPromoBox, setShowPromoBox] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuccess, setEmailSuccess] = useState(false);
@@ -46,19 +42,6 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
     onClose();
   };
 
-  const handleApplyPromo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!promoInput.trim()) return;
-    const ok = subscribeWithPromoCode(promoInput);
-    if (ok) {
-      setPromoSuccess(true);
-      setPromoError(null);
-    } else {
-      setPromoError(l("Invalid promo code. Please check and try again."));
-      setPromoSuccess(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <section role="dialog" aria-modal="true" aria-labelledby="membership-title" className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full my-auto shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900 dark:text-slate-100">
@@ -78,7 +61,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
         </div>
 
         <div className="p-6 space-y-5">
-          {isPro || promoSuccess || emailSuccess ? (
+          {isPro || emailSuccess ? (
             <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-900 dark:text-emerald-200 flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
               <div>
@@ -166,37 +149,6 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
                   </form>
                 )}
                 {emailError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400 mt-2">{l(emailError)}</p>}
-              </div>
-
-              {/* Promo / Access code toggle */}
-              <div className="pt-1 text-center">
-                {!showPromoBox ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowPromoBox(true)}
-                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer inline-flex items-center gap-1"
-                  >
-                    <KeyRound className="w-3 h-3" />
-                    {l("Have a promo or access code?")}
-                  </button>
-                ) : (
-                  <form onSubmit={handleApplyPromo} className="flex items-center gap-2 mt-2">
-                    <input
-                      type="text"
-                      placeholder={l("Enter code (e.g. PROMO599)")}
-                      value={promoInput}
-                      onChange={(e) => setPromoInput(e.target.value)}
-                      className="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 uppercase font-mono"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-2 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-700 rounded-lg hover:bg-slate-900 cursor-pointer"
-                    >
-                      {l("Apply")}
-                    </button>
-                  </form>
-                )}
-                {promoError && <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{promoError}</p>}
               </div>
             </>
           )}
