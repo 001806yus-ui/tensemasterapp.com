@@ -53,7 +53,8 @@ function MainApp() {const { l } = useLocalization();
     nativeLanguage,
     ownerConfig,
     justSubscribedNotice,
-    clearSubscribedNotice
+    clearSubscribedNotice,
+    pendingEmailVerification
   } = useUser();
   const [currentTab, setCurrentTab] = useState<NavigationTab>('roadmap');
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +64,12 @@ function MainApp() {const { l } = useLocalization();
   const [activeTenseModal, setActiveTenseModal] = useState<TenseData | null>(null);
   const [activeTenseInitialTab, setActiveTenseInitialTab] = useState<'formulas' | 'examples' | 'pronunciation' | 'video' | 'practice' | 'mistakes'>('formulas');
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
+
+  // Back from Stripe checkout: open the membership panel so the learner can
+  // confirm the email they paid with and unlock access.
+  useEffect(() => {
+    if (pendingEmailVerification) setIsSubscriptionOpen(true);
+  }, [pendingEmailVerification]);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [isGlossaryDrawerOpen, setIsGlossaryDrawerOpen] = useState(false);
   const [isRemindersModalOpen, setIsRemindersModalOpen] = useState(false);
@@ -526,7 +533,7 @@ function MainApp() {const { l } = useLocalization();
 
       {/* Welcome Onboarding Tutorial Modal */}
       <WelcomeTutorial
-        isOpen={isWelcomeTutorialOpen}
+        isOpen={isWelcomeTutorialOpen && !pendingEmailVerification}
         onClose={() => setIsWelcomeTutorialOpen(false)}
         onStartDiagnostic={() => {
           setIsWelcomeTutorialOpen(false);
