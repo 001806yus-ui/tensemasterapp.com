@@ -41,11 +41,17 @@ globalThis.fetch = mockStripe as any;
 delete process.env.STRIPE_SECRET_KEY;
 assert.equal((await call({ email: 'a@b.co' }, 'GET')).status, 405);
 assert.equal((await call({ email: 'a@b.co' })).status, 503, 'No key configured');
+process.env.FREE_ACCESS_EMAILS = ' Sobrino1@Example.com, sobrino2@example.com;\nsobrino3@example.com ';
+for (const email of ['sobrino1@example.com', 'SOBRINO2@example.com', 'sobrino3@example.com']) assert.deepEqual((await call({ email })).body, { active: true }, 'Invited emails need no payment');
+assert.equal((await call({ email: 'sobrino4@example.com' })).status, 503, 'Not invited, and Stripe is not configured');
 process.env.STRIPE_SECRET_KEY = ' sk_test_only ';
 for (const body of [undefined, {}, { email: 5 }, { email: 'no-at-sign' }, { email: 'a@b' }, { email: 'a b@c.co' }, { email: 'a"b@c.co' }, { email: `${'a'.repeat(250)}@b.co` }]) {
   assert.equal((await call(body)).status, 400);
 }
 assert.equal(stripeCalls.length, 0, 'Invalid requests never reach Stripe');
+assert.deepEqual((await call({ email: 'sobrino1@example.com' })).body, { active: true });
+assert.equal(stripeCalls.length, 0, 'Invited emails are answered without asking Stripe');
+delete process.env.FREE_ACCESS_EMAILS;
 
 stripe = [
   { id: 'cus_paid', email: 'paid@example.com', statuses: ['canceled', 'active'] },
@@ -174,9 +180,21 @@ await render();
 await settle();
 assert.equal(user!.isPro, false);
 assert.equal(asked.length, 0);
+assert(!text().toLowerCase().includes('promo'), 'No code box: codes cannot unlock the course');
+assert.equal('subscribeWithPromoCode' in user!, false);
 assert(!document.querySelector('input'), 'Email box stays closed until the learner asks for it');
 await act(async () => { [...document.querySelectorAll('button')].find((button) => button.textContent!.includes('Already paid?'))!.click(); });
 assert(document.querySelector('#membership-verify-email'));
 await reset();
 
-console.log('PASS: Paid access is confirmed with Stripe by email (active, trial, canceled, capital letters, outages, limits) and the checkout URL alone unlocks nothing.');
+// A membership saved earlier from a promo code no longer counts.
+saved.subscription = { ...saved.subscription, isPro: true, paymentMethod: 'Promo Code', priceUSD: 5.99 };
+localStorage.setItem('tensemaster_user_progress_v2', JSON.stringify(saved));
+localStorage.setItem('tensemaster_verified_email', 'someone@example.com');
+answer = () => json({ active: false });
+await render();
+await settle();
+assert.equal(user!.isPro, false, 'Promo-code memberships are not accepted');
+await reset();
+
+console.log('PASS: Paid access is confirmed with Stripe by email (active, trial, canceled, capital letters, outages, limits, invited emails); the checkout URL, promo codes and saved browser data unlock nothing.');
