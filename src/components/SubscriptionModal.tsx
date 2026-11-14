@@ -1,8 +1,15 @@
 import { useLocalization } from "../i18n/LocalizationContext";
 import React, { useState } from 'react';
-import { X, CheckCircle2, ExternalLink, CreditCard, ShieldCheck, Sparkles, KeyRound } from 'lucide-react';
+import { X, CheckCircle2, ExternalLink, CreditCard, ShieldCheck, Sparkles, KeyRound, MailCheck } from 'lucide-react';
 import { MEMBERSHIP, getCheckoutURL } from '../config/membership';
-import { useUser } from '../context/UserContext';
+import { useUser, AccessCheckResult } from '../context/UserContext';
+
+const ACCESS_MESSAGES: Record<Exclude<AccessCheckResult, 'active'>, string> = {
+  'not-found': "We couldn't find an active subscription for that email. Use the email from your Stripe receipt.",
+  'invalid-email': 'Please enter a valid email address.',
+  'too-many-attempts': 'Too many attempts. Please wait a minute and try again.',
+  'unavailable': "We couldn't verify your subscription right now. Please try again in a moment."
+};
 
 interface SubscriptionModalProps {
   onClose: () => void;
@@ -10,12 +17,34 @@ interface SubscriptionModalProps {
 
 export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose }) => {
   const { l } = useLocalization();
-  const { isPro, subscribeWithPromoCode } = useUser();
+  const { isPro, subscribeWithPromoCode, verifyAccessByEmail, pendingEmailVerification, dismissPendingEmailVerification } = useUser();
   const checkoutURL = getCheckoutURL();
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState(false);
   const [showPromoBox, setShowPromoBox] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState(false);
+  const [emailChecking, setEmailChecking] = useState(false);
+  const [showEmailBox, setShowEmailBox] = useState(false);
+  const emailBoxOpen = showEmailBox || pendingEmailVerification;
+
+  const handleVerifyEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput.trim() || emailChecking) return;
+    setEmailChecking(true);
+    setEmailError(null);
+    const result = await verifyAccessByEmail(emailInput);
+    setEmailChecking(false);
+    if (result === 'active') setEmailSuccess(true);
+    else setEmailError(ACCESS_MESSAGES[result]);
+  };
+
+  const handleClose = () => {
+    dismissPendingEmailVerification();
+    onClose();
+  };
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +63,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
       <section role="dialog" aria-modal="true" aria-labelledby="membership-title" className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full my-auto shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden text-slate-900 dark:text-slate-100">
         <div className="p-6 bg-gradient-to-r from-indigo-900 via-indigo-850 to-slate-900 text-white relative">
-          <button onClick={onClose} aria-label={l("Close membership")} className="absolute right-4 top-4 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"><X className="w-5 h-5" /></button>
+          <button onClick={handleClose} aria-label={l("Close membership")} className="absolute right-4 top-4 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"><X className="w-5 h-5" /></button>
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-amber-300" />
@@ -49,7 +78,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
         </div>
 
         <div className="p-6 space-y-5">
-          {isPro || promoSuccess ? (
+          {isPro || promoSuccess || emailSuccess ? (
             <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-4 text-emerald-900 dark:text-emerald-200 flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
               <div>
@@ -98,6 +127,47 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
                 </p>
               )}
 
+              {/* Already paid: unlock by confirming the checkout email with Stripe */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 text-center">
+                {pendingEmailVerification && (
+                  <p role="status" className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">
+                    {l("Thanks for your payment! Confirm the email you used at checkout to activate your access.")}
+                  </p>
+                )}
+                {!emailBoxOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailBox(true)}
+                    className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <MailCheck className="w-4 h-4" />
+                    {l("Already paid? Verify your access")}
+                  </button>
+                ) : (
+                  <form onSubmit={handleVerifyEmail} className="flex flex-wrap items-center gap-2">
+                    <label htmlFor="membership-verify-email" className="sr-only">{l("Email used at checkout")}</label>
+                    <input
+                      id="membership-verify-email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      placeholder={l("Email used at checkout")}
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      className="flex-1 min-w-0 basis-48 px-3 py-2.5 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={emailChecking}
+                      className="px-4 py-2.5 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                    >
+                      {emailChecking ? l("Checking…") : l("Verify my access")}
+                    </button>
+                  </form>
+                )}
+                {emailError && <p role="alert" className="text-xs text-rose-600 dark:text-rose-400 mt-2">{l(emailError)}</p>}
+              </div>
+
               {/* Promo / Access code toggle */}
               <div className="pt-1 text-center">
                 {!showPromoBox ? (
@@ -131,7 +201,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ onClose })
             </>
           )}
 
-          <button onClick={onClose} className="w-full p-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl text-sm font-medium cursor-pointer transition-colors">
+          <button onClick={handleClose} className="w-full p-3 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl text-sm font-medium cursor-pointer transition-colors">
             {l("Return to lessons")}
           </button>
         </div>
