@@ -43,7 +43,6 @@ interface UserContextType {
   completeExerciseForTense: (tenseId: string, isCorrect: boolean, totalQuestions: number) => void;
   markTenseComplete: (tenseId: string) => void;
   subscribePro: (method?: string) => void;
-  subscribeWithPromoCode: (code: string) => boolean;
   cancelSubscription: () => void;
   verifiedEmail: string | null;
   verifyAccessByEmail: (email: string) => Promise<AccessCheckResult>;
@@ -81,7 +80,7 @@ const DEFAULT_OWNER_CONFIG: OwnerBusinessConfig = {
   supportEmail: 'contacto@tensemasterapp.com',
   currencyCode: 'USD',
   priceMonthly: MEMBERSHIP.monthlyUSD,
-  promoCodeActive: 'PROMO599',
+  promoCodeActive: '',
   allTensesFreeMode: false
 };
 
@@ -319,14 +318,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Has valid paid subscription (Stripe verified by email on the server, or valid promo code with current price)
+  // A membership counts only when the server confirmed this email (a Stripe
+  // subscription, or an email the owner invited). Codes typed in the browser
+  // and saved browser data never unlock the course.
   const hasValidPaidSubscription = Boolean(
     progressState.subscription.isPro &&
-    ((progressState.subscription.paymentMethod === 'Stripe' && verifiedEmail) || progressState.subscription.paymentMethod === 'Promo Code') &&
+    progressState.subscription.paymentMethod === 'Stripe' &&
+    verifiedEmail &&
     progressState.subscription.priceUSD === MEMBERSHIP.monthlyUSD
   );
 
-  // Browser storage is a preview record unless verified by Stripe or promo code.
+  // Browser storage is a preview record unless the server verified the email.
   const previewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_OWNER_PREVIEW === 'true';
   const isPro = hasValidPaidSubscription || (previewEnabled && progressState.subscription.isPro);
 
@@ -466,15 +468,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
       subscription
     }));
-  };
-
-  const subscribeWithPromoCode = (code: string): boolean => {
-    const clean = code.trim().toUpperCase();
-    if (clean === 'PROMO599' || clean === 'VIP599' || clean === 'STRIPE599' || clean === ownerConfig.promoCodeActive?.toUpperCase()) {
-      subscribePro('Promo Code');
-      return true;
-    }
-    return false;
   };
 
   const cancelSubscription = () => {
@@ -726,7 +719,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         completeExerciseForTense,
         markTenseComplete,
         subscribePro,
-        subscribeWithPromoCode,
         cancelSubscription,
         verifiedEmail,
         verifyAccessByEmail,
