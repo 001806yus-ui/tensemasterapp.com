@@ -54,7 +54,8 @@ function MainApp() {const { l } = useLocalization();
     ownerConfig,
     justSubscribedNotice,
     clearSubscribedNotice,
-    pendingEmailVerification
+    pendingEmailVerification,
+    isPro
   } = useUser();
   const [currentTab, setCurrentTab] = useState<NavigationTab>('roadmap');
   const [searchQuery, setSearchQuery] = useState('');
@@ -298,6 +299,8 @@ function MainApp() {const { l } = useLocalization();
 
           {l(currentTab === 'chatbot' &&
         <ChatbotView
+          locked={!isPro}
+          onOpenSubscription={() => setIsSubscriptionOpen(true)}
           initialPrompt={tutorStarterPrompt}
           onOpenTenseDetail={(id) => {
             const t = ALL_12_TENSES.find((x) => x.id === id);
