@@ -6,7 +6,7 @@ export async function readTutorResponse(response: Response) {
     throw error;
   };
   if (response.status === 429) fail('The tutor has reached its current usage limit. Please try later; your message is saved.');
-  if (response.status === 401 || response.status === 403) fail('The tutor session could not be authorized. Reopen the app and try again; your message is saved in this tab.');
+  if (response.status === 401 || response.status === 403) fail('Your sign-in has expired. Sign in again from the membership panel; your message is saved.');
   if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
     fail('The app did not reach the tutor service. Reopen the app from AI Studio and try again. Your message is saved in this tab.');
   }
