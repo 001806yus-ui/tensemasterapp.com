@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { ALL_12_TENSES } from '../src/data/tensesData.js';
+import { PREMIUM_TENSES } from '../src/server/premiumTenses.js';
 import { CLOUD_VOICES, VOICE_SAMPLES, normalizeSpeechText } from '../src/config/voices.js';
 
 // Until real accounts and durable quotas exist, generate only shipped lesson
 // examples and voice samples. Never expose arbitrary paid speech generation.
 const allowed = new Set([
   ...Object.values(VOICE_SAMPLES),
-  ...ALL_12_TENSES.flatMap(t => [...t.examples.map(e => e.audioText), ...t.whenToUse.map(u => u.example)]),
+  ...[...ALL_12_TENSES, ...PREMIUM_TENSES].flatMap(t => [...t.examples.map(e => e.audioText), ...t.whenToUse.map(u => u.example)]),
 ].map(normalizeSpeechText));
 
 const cache = new Map<string, Buffer>();
