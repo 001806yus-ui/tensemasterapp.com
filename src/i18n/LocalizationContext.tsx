@@ -4,8 +4,10 @@ import { TRANSLATIONS, SUPPORTED_LANGUAGES, SupportedLanguage } from './translat
 import membershipTranslations from './membershipTranslations.json';
 import englishSource from './englishSource.json';
 import catalog from './catalog.json';
+import { authHeaders } from '../utils/session';
 
-const sourceMap: Record<string, string> = englishSource;
+const sourceMap: Record<string, string> = { ...englishSource };
+const knownKeys = new Set(Object.keys(catalog));
 const textToKey = new Map(Object.entries(catalog).map(([key, text]) => [text, key]));
 const direct = new Map<string, Record<string, string>>();
 for (const key of Object.keys(TRANSLATIONS.en)) {
@@ -33,7 +35,7 @@ function getCache(lang: string): Record<string, string> {
   if (cache[lang]) return cache[lang];
   try {
     const saved = JSON.parse(localStorage.getItem(`${CACHE_VERSION}_${lang}`) || '{}');
-    cache[lang] = Object.fromEntries(Object.entries(saved).filter(([key, value]) => key in catalog && typeof value === 'string')) as Record<string, string>;
+    cache[lang] = Object.fromEntries(Object.entries(saved).filter(([key, value]) => knownKeys.has(key) && typeof value === 'string')) as Record<string, string>;
   } catch { cache[lang] = {}; }
   return cache[lang];
 }
@@ -49,7 +51,7 @@ async function flush() {
         keys.forEach((key) => queue.delete(key));
         try {
           const response = await fetch('/api/translate', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() },
             body: JSON.stringify({ language: lang, keys }), signal: AbortSignal.timeout(45000)
           });
           if (!response.ok) throw new Error('Translation unavailable');
@@ -69,6 +71,24 @@ async function flush() {
       }
     }
   } finally { running = false; }
+}
+
+// Adds the text of the membership lessons once the server has delivered them.
+export function registerPremiumText(source: Record<string, string>, premiumCatalog: Record<string, string>) {
+  for (const [spanish, english] of Object.entries(source)) {
+    if (typeof spanish !== 'string' || typeof english !== 'string') continue;
+    sourceMap[spanish] = english;
+    if (!spanishByEnglish.has(english)) spanishByEnglish.set(english, spanish);
+  }
+  for (const [key, english] of Object.entries(premiumCatalog)) {
+    if (typeof key !== 'string' || typeof english !== 'string') continue;
+    knownKeys.add(key);
+    if (!textToKey.has(english)) textToKey.set(english, key);
+  }
+  // Saved translations of these lessons can be reused now that their keys are known.
+  for (const lang of Object.keys(cache)) delete cache[lang];
+  failures.clear();
+  emit();
 }
 
 export function useLocalization() {
