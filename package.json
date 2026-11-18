@@ -12,7 +12,8 @@
     "lint": "tsc --noEmit",
     "icons": "node scripts/generate-png-icons.mjs",
     "test": "node scripts/test.mjs",
-    "catalog": "node scripts/build-translation-catalog.mjs"
+    "catalog": "node scripts/build-translation-catalog.mjs",
+    "lessons": "tsx scripts/build-lesson-previews.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

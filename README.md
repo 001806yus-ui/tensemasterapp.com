@@ -45,23 +45,24 @@ The status route (`GET /api/speech`) reports availability; `POST /api/speech` re
 
 Add or update English source mappings in `src/i18n/englishSource.json`, then run `npm run catalog`. Core membership translations are in `src/i18n/membershipTranslations.json`. The server accepts only known public content keys and imposes per-instance limits; production deployment still needs account-based quotas and provider spending limits.
 
-## Billing status — not ready for paid enrollment
+## Membership and sign-in
 
-The original application used simulated card fields and activated membership without processing a payment. That flow has been removed. Stored demo subscriptions and the public owner PIN cannot grant production access.
+Payment uses a Stripe Payment Link ($5.99 USD/month). Members sign in with a 6-digit code sent to the email they paid with; there are no passwords.
 
-Until verified billing is implemented, the membership panel shows **Enrollment opens soon**, with the current price and access to two free lessons. It does not accept card details, redirect to a test payment link, or pretend that a payment succeeded.
+- `POST /api/login-code` checks that the email has access and emails the code. `POST /api/login-verify` checks the code and returns a signed 30-day session.
+- `GET /api/lessons` returns the ten membership lessons to a signed-in member and re-checks the subscription in Stripe each time, so a canceled subscription locks on the next visit. If Stripe cannot be reached, a valid session keeps working.
+- The full membership lessons and their text live only on the server (`src/server/`). The public app contains the two free lessons and short previews of the others (`src/data/tensePreviews.ts`). After editing a membership lesson, run `npm run lessons` and `npm run catalog`. Never import `src/server/` from browser code; a test checks this.
+- The AI tutor (`/api/chat`) and translations of membership lessons require a member session.
 
-Paid enrollment still requires:
+Server settings (Vercel → Settings → Environment Variables, Production):
 
-1. Real user sign-in and a server-side user/subscription store.
-2. A recurring $5.99 USD/month product associated with the signed-in user, using the payment route appropriate to each platform. Stripe can handle website payments; mobile app purchases need a separate store billing design.
-3. Server-verified payment notifications/receipts that provision or revoke access, including webhooks for website billing and store notifications for mobile purchases.
-4. A working billing portal for cancellation and renewals, plus an appropriate failed-payment flow.
-5. Account-based access controls and quotas for the AI tutor and translation routes.
-
-`VITE_BILLING_READY` remains false. Do not enable it until those flows are implemented and tested. The optional `VITE_STRIPE_PAYMENT_LINK` must be an HTTPS production `buy.stripe.com` link. A link alone does not implement membership verification.
-
-Owner preview can be enabled only in development with `VITE_ENABLE_OWNER_PREVIEW=true`. It is a local preview convenience and never authenticates a production account.
+| Name | Purpose |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Reads customers and subscriptions to confirm an email has an active subscription. A restricted key with read access to Customers and Subscriptions is enough. |
+| `RESEND_API_KEY` | Sends the sign-in code email through Resend. |
+| `EMAIL_FROM` | Sender, for example `TenseMaster <acceso@tensemasterapp.com>`. The domain must be verified in Resend. |
+| `FREE_ACCESS_EMAILS` | Optional. Emails with free access, separated by commas. |
+| `SESSION_SECRET` | Optional. Signs sessions; if missing, a key is derived from the Stripe and Resend keys (changing those keys signs everyone out). |
 
 ## Validation
 
