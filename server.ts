@@ -6,7 +6,9 @@ import speechHandler from './api/speech';
 import transcribeHandler from './api/transcribe';
 import express from 'express';
 import chatHandler from './api/chat';
-import checkAccessHandler from './api/check-access';
+import loginCodeHandler from './api/login-code';
+import loginVerifyHandler from './api/login-verify';
+import lessonsHandler from './api/lessons';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -26,8 +28,10 @@ app.post('/api/speech', speechHandler);
 // Share the same tutor handler in AI Studio and serverless deployments.
 app.post('/api/chat', chatHandler);
 
-// Confirms a paid membership with Stripe before the app unlocks it.
-app.post('/api/check-access', checkAccessHandler);
+// Member sign-in by emailed code, and the paid lessons for signed-in members.
+app.post('/api/login-code', loginCodeHandler);
+app.post('/api/login-verify', loginVerifyHandler);
+app.get('/api/lessons', lessonsHandler);
 
 // API failures must remain JSON, rather than falling through to the SPA.
 // Health check endpoint

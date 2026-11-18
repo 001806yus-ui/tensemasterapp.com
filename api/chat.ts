@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { SUPPORTED_LANGUAGES } from '../src/i18n/translations.js';
+import { sessionEmail } from '../src/server/session.js';
 let active = 0;
 let requests = 0;
 
@@ -37,6 +38,10 @@ export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed. Use POST.' });
+  }
+  // The AI tutor is a membership feature: it needs a signed-in session.
+  if (!sessionEmail(req)) {
+    return res.status(401).json({ error: 'The AI tutor is part of the membership. Sign in to use it.' });
   }
 
   let acquired = false;

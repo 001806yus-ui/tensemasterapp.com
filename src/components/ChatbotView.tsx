@@ -1,4 +1,5 @@
 import { readTutorResponse } from '../utils/tutorResponse';
+import { authHeaders } from '../utils/session';
 import { RecordedDictation } from './RecordedDictation';
 import { useLocalization } from "../i18n/LocalizationContext";
 import React, { useState, useRef, useEffect } from 'react';
@@ -54,9 +55,31 @@ import {
 interface ChatbotViewProps {
   onOpenTenseDetail?: (tenseId: string) => void;
   initialPrompt?: string;
+  // The AI tutor is a membership feature; non-members see what it offers and how to join.
+  locked?: boolean;
+  onOpenSubscription?: () => void;
 }
 
-export const ChatbotView: React.FC<ChatbotViewProps> = ({ onOpenTenseDetail, initialPrompt }) => {const { l } = useLocalization();
+export const ChatbotView: React.FC<ChatbotViewProps> = (props) => {
+  const { l } = useLocalization();
+  if (props.locked) {
+    return (
+      <section className="max-w-xl mx-auto my-6 rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 p-6 text-center shadow-sm">
+        <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center mx-auto mb-3">
+          <Lock className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{l("The AI tutor is part of the All-Access membership.")}</h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{l("24/7 AI conversational grammar tutor with instant explanations")}</p>
+        <button type="button" onClick={props.onOpenSubscription} className="mt-4 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold cursor-pointer">
+          {l("See membership")}
+        </button>
+      </section>
+    );
+  }
+  return <ChatbotTutor {...props} />;
+};
+
+const ChatbotTutor: React.FC<ChatbotViewProps> = ({ onOpenTenseDetail, initialPrompt }) => {const { l } = useLocalization();
   const { nativeLanguage, logDailyPractice, t } = useUser();
   const [selectedTopic, setSelectedTopic] = useState<ChatTopicConfig>(CHAT_TOPICS[0]);
   const [difficulty, setDifficulty] = useState<ChatDifficultyLevel>('intermediate');
@@ -189,7 +212,8 @@ export const ChatbotView: React.FC<ChatbotViewProps> = ({ onOpenTenseDetail, ini
       const response = await fetch('/api/chat', {
         method: 'POST', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]),
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...authHeaders()
         },
         body: JSON.stringify({
           message: text,

@@ -20,6 +20,8 @@ import catalog from '../src/i18n/catalog.json';
 import { getCheckoutURL } from '../src/config/membership';
 import { SUPPORTED_LANGUAGES } from '../src/i18n/translations';
 import englishSource from '../src/i18n/englishSource.json';
+import premiumSource from '../src/server/premiumSource.json';
+import { PREMIUM_TENSES } from '../src/server/premiumTenses';
 import translateHandler from '../api/translate';
 import metadata from '../metadata.json';
 import { ChatbotView } from '../src/components/ChatbotView';
@@ -106,8 +108,8 @@ assert(!text().includes('1.99'));
 await reset();
 
 // Every explanatory lesson field and all 132 exercise prompts have an English source.
-const src: Record<string, string> = englishSource;
-for (const tense of ALL_12_TENSES) {
+const src: Record<string, string> = { ...englishSource, ...premiumSource };
+for (const tense of [...ALL_12_TENSES.filter((t) => t.isFreePreview), ...PREMIUM_TENSES]) {
   const fields = [tense.tagline, ...Object.values(tense.timelineGraphic), ...Object.values(tense.formula), ...tense.whenToUse.flatMap((u) => [u.title, u.description]), ...tense.commonMistakes.map((m) => m.why), ...tense.examples.map((e) => e.contextNote), tense.videoLesson.title, tense.videoLesson.summary, ...tense.videoLesson.keyTakeaways, ...tense.exercises.flatMap((e) => [e.prompt, e.explanation, ...(e.hint ? [e.hint] : [])])];
   for (const field of fields) assert(src[field.trim()] || !/[áéíóúñ¿¡]/i.test(field), `Missing English lesson source: ${field}`);
 }

@@ -1,8 +1,12 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import catalog from '../src/i18n/catalog.json' with { type: 'json' };
+import premiumCatalog from '../src/server/premiumCatalog.json' with { type: 'json' };
 import { SUPPORTED_LANGUAGES } from '../src/i18n/translations.js';
+import { sessionEmail } from '../src/server/session.js';
 
-const publicCatalog: Record<string, string> = catalog;
+// Membership lesson text is translated only for signed-in members.
+const publicCatalog: Record<string, string> = { ...catalog, ...premiumCatalog };
+const membersOnly = new Set(Object.keys(premiumCatalog));
 const cache = new Map<string, Record<string, string>>();
 const inFlight = new Map<string, Promise<Record<string, string>>>();
 const rateWindows = new Map<string, { since: number; count: number }>();
@@ -14,6 +18,7 @@ export default async function handler(req: any, res: any) {
   if (!SUPPORTED_LANGUAGES.some((l) => l.code === language) || !Array.isArray(keys) || keys.length < 1 || keys.length > 30 || keys.some((key) => typeof key !== 'string' || !(key in publicCatalog))) {
     return res.status(400).json({ error: 'Invalid language or content keys.' });
   }
+  if (keys.some((key: string) => membersOnly.has(key)) && !sessionEmail(req)) return res.status(401).json({ error: 'Sign in to translate membership lessons.' });
   const uniqueKeys: string[] = [...new Set<string>(keys)];
   if (uniqueKeys.reduce((sum, key) => sum + publicCatalog[key].length, 0) > 14000) return res.status(400).json({ error: 'Content batch too large.' });
   if (language === 'en') return res.json({ translations: Object.fromEntries(uniqueKeys.map((key) => [key, publicCatalog[key]])) });

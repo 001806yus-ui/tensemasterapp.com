@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import handler from '../api/chat';
-const call = async (body: any, method = 'POST') => {
+import { createSession, signingKey } from '../src/server/session';
+process.env.SESSION_SECRET = 'test-only-secret';
+const member = { authorization: `Bearer ${createSession('member@example.com', signingKey()!)}` };
+const call = async (body: any, method = 'POST', headers: any = member) => {
   const result: any = { status: 200 };
-  await handler({ method, body }, { setHeader() {}, status(n: number) { result.status = n; return this; }, json(data: any) { result.body = data; return this; } });
+  await handler({ method, body, headers }, { setHeader() {}, status(n: number) { result.status = n; return this; }, json(data: any) { result.body = data; return this; } });
   return result;
 };
 let providerCalls = 0;
@@ -12,6 +15,8 @@ for (const body of [undefined, {message: ' '}, {message: 'a'.repeat(6001)}, {mes
   assert.equal((await call(body)).status, 400);
 }
 assert.equal((await call({}, 'GET')).status, 405);
+assert.equal((await call({ message: 'hello' }, 'POST', {})).status, 401, 'The tutor needs a member session');
+assert.equal((await call({ message: 'hello' }, 'POST', { authorization: 'Bearer forged.token' })).status, 401);
 process.env.GEMINI_API_KEY = ' MY_GEMINI_API_KEY ';
 assert.equal((await call({message:'hello'})).status, 503);
 process.env.GEMINI_API_KEY = 'test-only';

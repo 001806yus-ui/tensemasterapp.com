@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import handler from '../api/chat';
+import { createSession, signingKey } from '../src/server/session';
 
 // The tutor tries backup models when one is busy, retired or out of quota,
 // stops at once on a bad key, and logs the reason without the student's text.
@@ -23,10 +24,11 @@ const good = { text: JSON.stringify({ replyEnglish: 'Nice! What did you do there
 const fail = (status: number, message = 'provider failure') => Object.assign(new Error(message), { name: 'ApiError', status });
 const call = async (message = 'Yesterday I went to the secret-park-123.') => {
   const result: any = { status: 200 };
-  await handler({ method: 'POST', body: { message } }, { setHeader() {}, status(n: number) { result.status = n; return this; }, json(data: any) { result.body = data; return this; } });
+  await handler({ method: 'POST', body: { message }, headers: { authorization: `Bearer ${createSession('member@example.com', signingKey()!)}` } }, { setHeader() {}, status(n: number) { result.status = n; return this; }, json(data: any) { result.body = data; return this; } });
   return result;
 };
 process.env.GEMINI_API_KEY = 'test-only';
+process.env.SESSION_SECRET = 'test-only-secret';
 delete process.env.GEMINI_MODEL;
 delete process.env.CHAT_MAX_REQUESTS;
 

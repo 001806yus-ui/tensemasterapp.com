@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { UserProgressState, TenseProgress, UserSubscription, PushReminderSettings, DiagnosticResult, OwnerBusinessConfig } from '../types';
-import { ALL_12_TENSES } from '../data/tensesData';
+import { ALL_12_TENSES, installPremiumLessons, removePremiumLessons } from '../data/tensesData';
 import {
   SupportedLanguage,
   TRANSLATIONS,
@@ -13,8 +13,11 @@ import {
 import { MEMBERSHIP } from '../config/membership';
 import { DEFAULT_REMINDER_SETTINGS, sendPushNotification } from '../utils/notifications';
 import { generateProgressPDF } from '../utils/pdfExport';
+import { authHeaders, clearSession, getSessionEmail, getSessionToken, saveSession } from '../utils/session';
+import { registerPremiumText } from '../i18n/LocalizationContext';
 
-export type AccessCheckResult = 'active' | 'not-found' | 'invalid-email' | 'too-many-attempts' | 'unavailable';
+export type SignInResult = 'code-sent' | 'active' | 'no-subscription' | 'invalid-email' | 'wrong-code' | 'too-many-attempts' | 'not-configured' | 'unavailable';
+export type MembershipStatus = 'locked' | 'loading' | 'unlocked' | 'error';
 
 interface UserContextType {
   progressState: UserProgressState;
@@ -44,8 +47,14 @@ interface UserContextType {
   markTenseComplete: (tenseId: string) => void;
   subscribePro: (method?: string) => void;
   cancelSubscription: () => void;
-  verifiedEmail: string | null;
-  verifyAccessByEmail: (email: string) => Promise<AccessCheckResult>;
+  memberEmail: string | null;
+  membershipStatus: MembershipStatus;
+  signInEmail: string | null;
+  requestSignInCode: (email: string) => Promise<SignInResult>;
+  confirmSignInCode: (code: string) => Promise<SignInResult>;
+  cancelSignIn: () => void;
+  signOut: () => void;
+  retryMembership: () => void;
   pendingEmailVerification: boolean;
   dismissPendingEmailVerification: () => void;
   justSubscribedNotice: boolean;
@@ -71,7 +80,6 @@ const LANG_STORAGE_KEY = 'tensemaster_interface_language_v3';
 const REMINDERS_STORAGE_KEY = 'tensemaster_push_reminders';
 const DARK_STORAGE_KEY = 'tensemaster_dark_mode';
 const OWNER_STORAGE_KEY = 'tensemaster_owner_config';
-const VERIFIED_EMAIL_KEY = 'tensemaster_verified_email';
 
 const DEFAULT_OWNER_CONFIG: OwnerBusinessConfig = {
   stripePaymentLink: '',
@@ -291,14 +299,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [justSubscribedNotice, setJustSubscribedNotice] = useState<boolean>(false);
 
-  // The email Stripe confirmed as having an active subscription (set by verifyAccessByEmail).
-  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(VERIFIED_EMAIL_KEY);
-    } catch {
-      return null;
-    }
-  });
+  // Membership: the ten paid lessons arrive from the server only for a signed-in member.
+  const [memberEmail, setMemberEmail] = useState<string | null>(() => (getSessionToken() ? getSessionEmail() : null));
+  const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>(() => (getSessionToken() ? 'loading' : 'locked'));
+  const [signIn, setSignIn] = useState<{ email: string; challenge: string } | null>(null);
   const [pendingEmailVerification, setPendingEmailVerification] = useState<boolean>(false);
 
   // Returning from Stripe checkout does not unlock anything by itself: the URL
@@ -318,17 +322,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // A membership counts only when the server confirmed this email (a Stripe
-  // subscription, or an email the owner invited). Codes typed in the browser
-  // and saved browser data never unlock the course.
-  const hasValidPaidSubscription = Boolean(
-    progressState.subscription.isPro &&
-    progressState.subscription.paymentMethod === 'Stripe' &&
-    verifiedEmail &&
-    progressState.subscription.priceUSD === MEMBERSHIP.monthlyUSD
-  );
+  // Only lessons delivered by the server after sign-in unlock the course. Saved
+  // browser data, URL parameters and codes typed in the browser never do.
+  const hasValidPaidSubscription = membershipStatus === 'unlocked';
 
-  // Browser storage is a preview record unless the server verified the email.
   const previewEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_OWNER_PREVIEW === 'true';
   const isPro = hasValidPaidSubscription || (previewEnabled && progressState.subscription.isPro);
 
@@ -485,65 +482,105 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
-  const askStripeAboutEmail = async (email: string): Promise<AccessCheckResult> => {
+  const lockMembership = () => {
+    clearSession();
+    removePremiumLessons();
+    cancelSubscription();
+    setMemberEmail(null);
+    setMembershipStatus('locked');
+  };
+
+  // Loads the paid lessons for the saved session. The server re-checks the
+  // subscription each time, so a canceled one locks again on the next visit.
+  const loadMembership = async (): Promise<boolean> => {
+    if (!getSessionToken()) { setMembershipStatus('locked'); return false; }
+    setMembershipStatus('loading');
     try {
-      const response = await fetch('/api/check-access', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-        signal: AbortSignal.timeout(30000)
-      });
-      if (response.status === 400) return 'invalid-email';
-      if (response.status === 429) return 'too-many-attempts';
-      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return 'unavailable';
+      const response = await fetch('/api/lessons', { headers: authHeaders(), cache: 'no-store', signal: AbortSignal.timeout(30000) });
+      if (response.status === 401 || response.status === 403) { lockMembership(); return false; }
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Lessons unavailable');
       const data = await response.json();
-      if (typeof data?.active !== 'boolean') return 'unavailable';
-      return data.active ? 'active' : 'not-found';
+      if (!Array.isArray(data?.lessons) || !installPremiumLessons(data.lessons)) throw new Error('Incomplete lessons');
+      registerPremiumText(data.source || {}, data.catalog || {});
+      if (typeof data.email === 'string') setMemberEmail(data.email);
+      subscribePro('Stripe');
+      setMembershipStatus('unlocked');
+      return true;
+    } catch {
+      setMembershipStatus('error');
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    try { localStorage.removeItem('tensemaster_verified_email'); } catch { /* old version's data */ }
+    if (getSessionToken()) void loadMembership();
+    // Runs once per visit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const postJSON = async (path: string, body: unknown) => {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000)
+    });
+    const data = response.headers.get('content-type')?.includes('application/json') ? await response.json().catch(() => null) : null;
+    return { status: response.status, data };
+  };
+
+  const errorResult = (status: number, data: any): SignInResult => {
+    if (status === 400 && data?.error === 'invalid-email') return 'invalid-email';
+    if (status === 400 && data?.error === 'wrong-code') return 'wrong-code';
+    if (status === 429) return 'too-many-attempts';
+    if (status === 503) return 'not-configured';
+    return 'unavailable';
+  };
+
+  // Step 1: the server checks the email has access and emails a 6-digit code.
+  const requestSignInCode = async (email: string): Promise<SignInResult> => {
+    const clean = email.trim().toLowerCase();
+    if (!clean || clean.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return 'invalid-email';
+    try {
+      const { status, data } = await postJSON('/api/login-code', { email: clean });
+      if (status === 200 && data?.status === 'no-subscription') return 'no-subscription';
+      if (status === 200 && data?.status === 'code-sent' && typeof data.challenge === 'string') {
+        setSignIn({ email: clean, challenge: data.challenge });
+        return 'code-sent';
+      }
+      return errorResult(status, data);
     } catch {
       return 'unavailable';
     }
   };
 
-  // Unlocks the membership only after the server finds an active Stripe subscription for this email.
-  const verifyAccessByEmail = async (email: string): Promise<AccessCheckResult> => {
-    const clean = email.trim().toLowerCase();
-    if (!clean || clean.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return 'invalid-email';
-    const result = await askStripeAboutEmail(clean);
-    if (result !== 'active') return result;
-    subscribePro('Stripe');
-    setVerifiedEmail(clean);
+  // Step 2: the code proves the person owns the email; the server returns a session.
+  const confirmSignInCode = async (code: string): Promise<SignInResult> => {
+    if (!signIn) return 'wrong-code';
+    const clean = code.replace(/\D/g, '');
+    if (clean.length !== 6) return 'wrong-code';
     try {
-      localStorage.setItem(VERIFIED_EMAIL_KEY, clean);
+      const { status, data } = await postJSON('/api/login-verify', { challenge: signIn.challenge, code: clean });
+      if (status !== 200 || typeof data?.token !== 'string') return errorResult(status, data);
+      saveSession(data.token, data.email || signIn.email);
+      setMemberEmail(data.email || signIn.email);
+      setSignIn(null);
+      const unlocked = await loadMembership();
+      if (!unlocked) return getSessionToken() ? 'unavailable' : 'no-subscription';
+      setPendingEmailVerification(false);
+      setJustSubscribedNotice(true);
+      return 'active';
     } catch {
-      // ignore
+      return 'unavailable';
     }
-    setPendingEmailVerification(false);
-    setJustSubscribedNotice(true);
-    return 'active';
   };
 
-  const dismissPendingEmailVerification = () => setPendingEmailVerification(false);
+  const cancelSignIn = () => setSignIn(null);
+  const signOut = () => { setSignIn(null); lockMembership(); };
+  const retryMembership = () => { void loadMembership(); };
 
-  // When the app opens, confirm that a saved Stripe membership is still active.
-  // Access is removed only when Stripe clearly answers that it is not (a canceled
-  // or unpaid subscription), never because of a connection problem.
-  useEffect(() => {
-    if (!verifiedEmail || progressState.subscription.paymentMethod !== 'Stripe' || !progressState.subscription.isPro) return;
-    let ignore = false;
-    void askStripeAboutEmail(verifiedEmail).then((result) => {
-      if (ignore || result !== 'not-found') return;
-      cancelSubscription();
-      setVerifiedEmail(null);
-      try {
-        localStorage.removeItem(VERIFIED_EMAIL_KEY);
-      } catch {
-        // ignore
-      }
-    });
-    return () => { ignore = true; };
-    // Runs once per visit; later changes come from verifyAccessByEmail itself.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const dismissPendingEmailVerification = () => setPendingEmailVerification(false);
 
   const [isOwnerAuthenticated, setIsOwnerAuthenticated] = useState<boolean>(() => {
     try {
@@ -720,8 +757,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         markTenseComplete,
         subscribePro,
         cancelSubscription,
-        verifiedEmail,
-        verifyAccessByEmail,
+        memberEmail,
+        membershipStatus,
+        signInEmail: signIn?.email ?? null,
+        requestSignInCode,
+        confirmSignInCode,
+        cancelSignIn,
+        signOut,
+        retryMembership,
         pendingEmailVerification,
         dismissPendingEmailVerification,
         justSubscribedNotice,
