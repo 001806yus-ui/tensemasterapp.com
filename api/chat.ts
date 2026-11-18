@@ -3,6 +3,35 @@ import { SUPPORTED_LANGUAGES } from '../src/i18n/translations.js';
 let active = 0;
 let requests = 0;
 
+// Models to try in order. A model that is busy, retired or out of free quota is
+// skipped, so one provider problem does not take the whole tutor down.
+const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+const RETRYABLE = new Set([404, 408, 429, 500, 502, 503, 504]);
+
+function providerStatus(error: any): number {
+  const raw = error?.status ?? error?.code;
+  const number = Number(raw);
+  if (Number.isFinite(number) && number > 0) return number;
+  const text = `${raw ?? ''} ${error?.message ?? ''}`;
+  if (/RESOURCE_EXHAUSTED|quota|rate limit/i.test(text)) return 429;
+  if (/UNAVAILABLE|overloaded/i.test(text)) return 503;
+  if (/DEADLINE|timed? ?out|abort/i.test(text) || error?.name === 'AbortError' || error?.name === 'TimeoutError') return 504;
+  if (/NOT_FOUND/i.test(text)) return 404;
+  if (/API key|PERMISSION_DENIED|UNAUTHENTICATED/i.test(text)) return 403;
+  return 0;
+}
+
+// Logs why the provider failed without any of the student's conversation.
+function logProviderError(model: string, error: any) {
+  const message = String(error?.message ?? error).replace(/\s+/g, ' ').slice(0, 300);
+  console.error(`tutor provider error model=${model} status=${providerStatus(error) || 'unknown'} name=${error?.name ?? 'Error'} message=${message}`);
+}
+
+function parseTutorJSON(text: string) {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  return JSON.parse(trimmed);
+}
+
 // Vercel Serverless Function handler for /api/chat
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
@@ -83,17 +112,23 @@ Student's new message:
 
 Evaluate the student's message, provide corrective feedback, and continue the conversation as the tutor.`;
 
-    let responseText: string | null = null;
-    const candidateModels = [process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash'];
+    const configured = process.env.GEMINI_MODEL?.trim();
+    const candidateModels = [...new Set([...(configured ? [configured] : []), ...FALLBACK_MODELS])];
+    let parsed: any = null;
+    let lastStatus = 0;
+    // The app gives up after 30 seconds, so all attempts together must finish before that.
+    const deadline = Date.now() + 26000;
 
     for (const modelName of candidateModels) {
+      const remaining = deadline - Date.now();
+      if (remaining < 4000) break;
       try {
         const response = await ai.models.generateContent({
           model: modelName,
           contents: prompt,
           config: {
             systemInstruction,
-            httpOptions: { timeout: 25000 },
+            httpOptions: { timeout: Math.min(18000, remaining - 500) },
             maxOutputTokens: 3000,
             responseMimeType: 'application/json',
             responseSchema: {
@@ -150,31 +185,29 @@ Evaluate the student's message, provide corrective feedback, and continue the co
           },
         });
 
-        if (response.text) {
-          responseText = response.text;
-          break;
+        const candidate = parseTutorJSON(response.text || '');
+        if (typeof candidate.replyEnglish !== 'string' || !candidate.replyEnglish.trim() || typeof candidate.hasErrors !== 'boolean' || typeof candidate.feedbackSummary !== 'string' || typeof candidate.replyTranslation !== 'string'
+          || !Array.isArray(candidate.detectedTenses) || candidate.detectedTenses.some((x: unknown) => typeof x !== 'string')
+          || !Array.isArray(candidate.suggestedReplies) || candidate.suggestedReplies.some((x: unknown) => typeof x !== 'string')) {
+          throw Object.assign(new Error('Invalid tutor response shape'), { status: 502 });
         }
+        parsed = candidate;
+        break;
       } catch (genError: any) {
-        if (Number(genError?.status ?? genError?.code) === 404) {
-          throw new Error(`The configured tutor model (${modelName}) is unavailable. Update GEMINI_MODEL in Secrets and apply changes.`);
-        }
-        throw genError;
+        logProviderError(modelName, genError);
+        const status = genError instanceof SyntaxError ? 502 : providerStatus(genError);
+        lastStatus = status;
+        // A bad or missing key fails the same way on every model: stop here.
+        if (!RETRYABLE.has(status)) break;
       }
     }
 
-    if (!responseText) {
-      throw new Error('The tutor returned an empty response. Please try again.');
-    }
-
-    const parsed = JSON.parse(responseText);
-    if (typeof parsed.replyEnglish !== 'string' || !parsed.replyEnglish.trim() || typeof parsed.hasErrors !== 'boolean' || typeof parsed.feedbackSummary !== 'string' || typeof parsed.replyTranslation !== 'string'
-      || !Array.isArray(parsed.detectedTenses) || parsed.detectedTenses.some((x: unknown) => typeof x !== 'string')
-      || !Array.isArray(parsed.suggestedReplies) || parsed.suggestedReplies.some((x: unknown) => typeof x !== 'string')) {
-      throw new Error('Invalid tutor response');
+    if (!parsed) {
+      throw Object.assign(new Error('All tutor models failed'), { status: lastStatus === 429 ? 429 : 502 });
     }
     return res.status(200).json(parsed);
   } catch (error: any) {
-    const status = Number(error?.status ?? error?.code);
+    const status = providerStatus(error);
     // Do not return provider payloads or log student conversation text.
     return res.status(status === 429 ? 429 : 502).json({
       error: status === 429 ? 'The tutor service quota is unavailable. Please try later.' : 'The tutor could not respond. Your message has not been evaluated.',

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import catalog from '../src/i18n/catalog.json';
+import catalog from '../src/i18n/catalog.json' with { type: 'json' };
 import { SUPPORTED_LANGUAGES } from '../src/i18n/translations.js';
 
 const publicCatalog: Record<string, string> = catalog;
